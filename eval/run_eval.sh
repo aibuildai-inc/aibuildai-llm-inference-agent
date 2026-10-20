@@ -68,6 +68,32 @@ ok = "OUR-HEAD-PATCH" in s and "del self.input_layernorm" not in s
 print("  sglang patch:", "OK" if ok else "MISSING")
 if not ok: sys.exit(f"\nRun ./tools/patch_sglang.sh from the repo root first. Without it the head computes a\n"
                     f"different function (relative error 1.84 vs 7.7e-17).\nFile: {f}")
+
+# The marker only proves the EDIT happened. SGLang discovers models by importing
+# every module under sglang/srt/models and SWALLOWS import errors
+# ("Ignore import error when loading ..."), so a module that no longer imports is
+# silently dropped from the registry and the failure surfaces much later as
+#   ValueError: Cannot find model module. 'Qwen2ForCausalLMEagle' is not a
+#   registered model in the Transformers library
+# 20 minutes into a run. Check importability and registration here instead.
+import importlib, traceback
+try:
+    importlib.import_module("sglang.srt.models.qwen2_eagle")
+    print("  draft module : imports")
+except Exception:
+    traceback.print_exc()
+    sys.exit("\nThe patched draft module does not import, so SGLang will not register it.\n"
+             "Restore it with:  cp %s.orig %s\n"
+             "then re-run ./tools/patch_sglang.sh and read its output." % (f, f))
+from sglang.srt.models.registry import ModelRegistry
+arch = "Qwen2ForCausalLMEagle"
+if arch in ModelRegistry.models:
+    print(f"  registry     : {arch} registered")
+else:
+    sys.exit(f"\n{arch} is missing from SGLang's ModelRegistry even though the module imports.\n"
+             f"Registered eagle architectures: "
+             f"{sorted(k for k in ModelRegistry.models if 'Eagle' in k)}\n"
+             f"models.json declares draft_architecture -- it must match one of those exactly.")
 import torch
 if not torch.cuda.is_available(): sys.exit("  no CUDA device visible")
 free,total = torch.cuda.mem_get_info(0)
