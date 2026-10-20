@@ -50,7 +50,18 @@ detectable difference at this sample size*, not zero difference. Resolving a
 - **A one-line SGLang patch** (see below). Without it the head computes a
   different function and the measurement is meaningless.
 
-## Quickstart
+
+## Three ways in
+
+Pick the one you want; they are independent.
+
+| | needs | gives you |
+|---|---|---|
+| **A** verify the published number | the head weights, no training | the 2.0089x reproduced, or a number to compare |
+| **B** train your own head | a GPU and hours | a head of your own from this recipe |
+| **C** re-run the end-to-end search | a GPU, a Claude login, 48 h | the agent builds a head from the task contract |
+
+## Quickstart A — verify the published number
 
 ```bash
 # 1. patch SGLang -- NOT optional
@@ -72,6 +83,54 @@ export SPECDEC_HEAD="$PWD/heads/draft_head.pt"
 
 Compare your output with `eval/REFERENCE.md`. Anything within ~2% is a match --
 that is the instrument's resolution, not slack.
+
+## Quickstart B — train your own head
+
+    cd train
+    python prepare.py          # harvest teacher features (hours; writes data/)
+    python train.py            # -> runs/<output_dir>/head.pt
+    python eval.py             # advisory dev acceptance
+    python export.py ../out    # -> ../out/full/{head.pt, head_config.json}
+
+Everything is driven by `train/recipe.yaml`. Read `train/README.md` first: the
+published corpus was grown incrementally across search steps rather than built
+by one `prepare.py` run, and the file explains which increments did what.
+
+## Quickstart C — re-run the end-to-end search
+
+This is the agent that *found* the head, not the head. It needs no trained head
+and no weights to start; it builds one from the task contract.
+
+    # 1. install the framework (the order matters -- packages/ first)
+    python3 -m venv ~/aibuildai-venv && . ~/aibuildai-venv/bin/activate
+    export AIBUILDAI_CLIPROXYAPI_SOURCE_COMMIT=21c3972447b7b51b0c86bb53f4e2552bac2526a4
+    cd framework
+    pip install -c requirements.lock -e ./packages/execution
+    pip install -c requirements.lock -e ./packages/conversation
+    pip install -c requirements.lock -e .
+    cd ..
+
+    # 2. confirm it installed as the revision that produced the result
+    aibuildai -V                 # 2026.8.4+439.gd4c0692e7.dirty
+
+    # 3. patch SGLang -- NOT optional
+    ./tools/patch_sglang.sh
+
+    # 4. launch (10 steps, 48 h budget; the published run used 36 h)
+    ./search/launch.sh [playground-dir]      # default ~/aibuildai-playground
+
+**Read `search/README.md` before launching.** It covers what the repository
+cannot supply -- a Claude Code login (no API key needed), a conda environment
+holding torch/SGLang/flashinfer, one GPU with >= 60 GB free, ~200 GB of disk --
+and two things that will otherwise surprise you:
+
+* a re-run writes its **own** scorer from the task contract, so two runs of the
+  same search can be scored differently. `search/score.reference.py` is the one
+  the published run used, to diff against or to pin;
+* a re-run will **not** retrace the published trajectory. Each step is an agent
+  forming its own hypothesis. What should reproduce is the stock baseline
+  (52.30--52.43 tok/s across all ten scored steps) and roughly the end point.
+
 
 ### The SGLang patch
 
@@ -120,28 +179,15 @@ search/      re-run the autonomous search that found the head
 whether a number means anything. Treat them as read-only. If you change them you
 are measuring something else, and `eval/REFERENCE.md` no longer applies.
 
-## Four things you can do with this
+## Reapplying the method elsewhere
 
-1. **Verify the published number.** `heads/` + `eval/` + `task/`. No training.
-2. **Train your own head.** `train/` has the code that produced this one, driven
-   by `train/recipe.yaml`. See `train/README.md`.
-3. **Reapply the method elsewhere.** `RECIPE.md` states what moved the number and
-   what did not, with the measurements, so the recipe can be taken to another
-   target.
+`RECIPE.md` states what moved the number and what did not, with the
+measurements, so the recipe can be taken to another target. `docs/` holds the
+same knowledge as standalone notes.
 
-None of the three needs the agent framework. `RECIPE.md` and
-`train/recipe.yaml` capture what the search converged on.
-
-4. **Re-run the search itself.** `search/` holds the task folder, the seven
-   knowledge documents the agents read, the run configuration that produced this
-   head, and the reference scorer; `framework/` is the agent framework that runs
-   them, as a source snapshot at the revision that produced the head. See
-   `search/README.md` to launch and `framework/EXCLUDED.md` for what the
-   snapshot leaves out.
-
-   A re-run will not retrace the published trajectory -- each step is an agent
-   forming its own hypothesis, and a run writes its own scorer from the task
-   contract. What should reproduce is the baseline and the end point.
+Quickstarts A and B need no agent framework at all -- `RECIPE.md` and
+`train/recipe.yaml` capture what the search converged on, so the recipe is
+usable without ever running an agent. Only C needs `framework/`.
 
 ## Scope
 
