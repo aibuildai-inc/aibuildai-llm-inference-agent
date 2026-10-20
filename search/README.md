@@ -89,7 +89,8 @@ joined to the current directory. Substitute, do not interpolate.
 
 | | |
 |---|---|
-| model access | **a Claude Code login is enough -- no Anthropic API key is required** (`framework/release/guide.md`). An `ANTHROPIC_API_KEY` works too. This is separate from `aibuildai login` |
+| **an AIBuildAI account** | `aibuildai run` is gated. `framework/subscription/run_grant.py` requires a signed lease fetched from AIBuildAI's server for a signed-in user, verified against a public key compiled into the build, and it **fails closed** -- there is no network-unreachable fallback and no self-hosted or offline-only mode. Run `aibuildai login` first. **Without an account you cannot run the search**, however complete the rest of your setup is. See "If you have no account" below |
+| model access | **a Claude Code login is enough -- no Anthropic API key is required** (`framework/release/guide.md`). An `ANTHROPIC_API_KEY` works too. This is a *separate* login from `aibuildai login`: the first supplies model tokens, the second authorises the run |
 | internet | the framework self-provisions PostgreSQL, ruff, tectonic and caddy by downloading pinned tarballs on first run, and the target is a ~28 GB download |
 | conda | `run.conda_env: sglang-baseline` names a host environment cloned into the run's program environment; cloning needs conda initialised in the launching shell. It must hold torch, SGLang and flashinfer (`../requirements.txt`). If no such environment exists the framework creates a fresh Python 3.11 one instead, and the run's own agents would then have to install the serving stack -- slower, and not what the published run did |
 | SGLang patch | `../tools/patch_sglang.sh`, applied to whichever SGLang the run will use |
@@ -115,6 +116,23 @@ Verified on this machine, from a fresh copy of this repository:
 Not verified: an actual run. That needs a free GPU, a model login and 36 hours,
 so the end-to-end search has not been re-executed from this copy.
 
+
+## If you have no AIBuildAI account
+
+Everything else in this repository works without one:
+
+* **Quickstart A** -- verify the published number with `eval/` and the released
+  head. No framework, no account.
+* **Quickstart B** -- train your own head with `train/`. No framework, no
+  account.
+* `RECIPE.md` and `docs/` state what moved the number and what did not, with the
+  measurements, so the method is reusable without ever running the agent.
+
+What you cannot do is re-run the *search*, because `aibuildai run` will refuse.
+`search/task/` is still worth reading even then: the task contract, the scoring
+contract, and the seven knowledge documents the agents read are the actual
+specification of the problem, and the step records quoted in `../RECIPE.md` show
+what the search concluded and why.
 
 ## What to expect, and what not to
 
