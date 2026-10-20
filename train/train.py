@@ -176,7 +176,28 @@ def main() -> None:
           f"inter {cfg['head']['inter']}, kv {geo['kv_heads']}, head_dim {geo['head_dim']}")
 
     train_file = cfg["data"].get("train_file", "train.pt")
-    data = torch.load(HERE / cfg["data"]["prepared"] / train_file, weights_only=False)
+    data_dir = HERE / cfg["data"]["prepared"]
+    path = data_dir / train_file
+    if not path.is_file():
+        # recipe.yaml names the step-10 corpus, which exists only after the
+        # incremental chain in corpus/ (see train/README.md). A fresh
+        # `prepare.py` writes train.pt, so Quickstart B's two-command order
+        # would otherwise die here after hours of corpus generation.
+        fallback = data_dir / "train.pt"
+        if not fallback.is_file():
+            raise SystemExit(
+                f"no training corpus found.\n"
+                f"  looked for : {path}\n"
+                f"  and        : {fallback}\n"
+                f"Run `python prepare.py` first; it writes data/train.pt."
+            )
+        print(f"!! {train_file} not found; falling back to {fallback.name}.")
+        print(f"!! {train_file} is the step-10 corpus, grown incrementally by the")
+        print(f"!! scripts in corpus/ -- see train/README.md. Training on")
+        print(f"!! {fallback.name} is a valid head but NOT the published one.")
+        path = fallback
+        train_file = fallback.name
+    data = torch.load(path, weights_only=False)
     print(f"train data ({train_file}): {len(data['ids'])} seqs / {data['total_tokens']} tokens")
 
     bs = int(tcfg["batch_size"])

@@ -101,9 +101,25 @@ that is the instrument's resolution, not slack.
     python eval.py             # advisory dev acceptance
     python export.py ../out    # -> ../out/full/{head.pt, head_config.json}
 
-Everything is driven by `train/recipe.yaml`. Read `train/README.md` first: the
-published corpus was grown incrementally across search steps rather than built
-by one `prepare.py` run, and the file explains which increments did what.
+Everything is driven by `train/recipe.yaml`.
+
+**The published head needs more than these four commands.** `recipe.yaml` names
+`train_v4.pt`, the step-10 corpus, which exists only after the incremental chain
+in `train/corpus/` -- `prepare.py` writes `train.pt`. Run the four commands above
+and `train.py` says so and trains on `train.pt` instead, which yields a valid
+head but not the published one. To reproduce the published corpus:
+
+    python prepare.py                       # -> data/train.pt
+    python corpus/gen_chat_aug.py           # -> data/chat_aug.pt
+    python corpus/merge_corpus.py           # -> data/train_v2.pt
+    python corpus/gen_rc_aug.py             # -> data/rc_aug.pt
+    python corpus/merge_corpus_v3.py        # -> data/train_v3.pt
+    python corpus/gen_rc_aug2.py            # -> data/rc_aug2.pt
+    python corpus/merge_corpus_v4.py        # -> data/train_v4.pt
+
+`train/README.md` explains what each increment added and why. The chain exists
+because regenerating 6M tokens of teacher features costs hours; it was grown
+across search steps rather than built in one pass.
 
 ## Quickstart C — re-run the end-to-end search
 
