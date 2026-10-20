@@ -4,22 +4,27 @@ The trained head is **626M**, too large for git, so it ships as a release asset
 rather than a committed file. It is attached to release **`v1.0.0`**. Place it in
 this directory, beside `draft_head.config.json`.
 
-While the repository is private, the plain download link will not work without
-credentials -- use the API form below, or copy the file over directly.
-
 ```bash
-# public repo:
 curl -L -o heads/draft_head.pt \
   https://github.com/importZL/AIBuildAI-SpecDec/releases/download/v1.0.0/draft_head.pt
-
-# private repo (token needs Contents: read):
-curl -L -H "Authorization: Bearer $GITHUB_TOKEN" \
-     -H "Accept: application/octet-stream" \
-     -o heads/draft_head.pt \
-  "$(curl -sS -H "Authorization: Bearer $GITHUB_TOKEN" \
-      https://api.github.com/repos/importZL/AIBuildAI-SpecDec/releases/tags/v1.0.0 \
-      | python3 -c 'import json,sys; print(next(a["url"] for a in json.load(sys.stdin)["assets"] if a["name"]=="draft_head.pt"))')"
 ```
+
+<details>
+<summary>If you are working from a private fork</summary>
+
+The plain link above returns 404 without credentials, which reads like a broken
+link rather than missing auth. Use the API form, with a token carrying
+`Contents: read`:
+
+```bash
+ASSET_URL=$(curl -sS -H "Authorization: Bearer $GITHUB_TOKEN" \
+  https://api.github.com/repos/OWNER/REPO/releases/tags/v1.0.0 \
+  | python3 -c 'import json,sys; print(next(a["url"] for a in json.load(sys.stdin)["assets"] if a["name"]=="draft_head.pt"))')
+curl -L -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/octet-stream" \
+  -o heads/draft_head.pt "$ASSET_URL"
+```
+
+</details>
 
 ```
 file    draft_head.pt

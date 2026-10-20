@@ -64,6 +64,9 @@ Pick the one you want; they are independent.
 ## Quickstart A — verify the published number
 
 ```bash
+git clone https://github.com/importZL/AIBuildAI-SpecDec.git
+cd AIBuildAI-SpecDec
+
 # 1. patch SGLang -- NOT optional
 ./tools/patch_sglang.sh
 
