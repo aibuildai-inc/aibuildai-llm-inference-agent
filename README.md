@@ -47,8 +47,9 @@ detectable difference at this sample size*, not zero difference. Resolving a
 - a C++ host compiler `nvcc` accepts -- flashinfer JIT-compiles kernels on first
   use. A system `g++` works; if the machine has none,
   `conda install -c conda-forge gxx_linux-64=12.4 gcc_linux-64=12.4` into the
-  serving environment and the harness will find it. Without this the first arm
-  fails with `nvcc fatal : Failed to preprocess host compiler properties`
+  serving environment; the harness finds the prefixed compiler and points nvcc
+  at it, so no symlinks are needed. Without a host compiler the first arm fails
+  with `nvcc fatal : Failed to preprocess host compiler properties`
 - The exact versions in `requirements-frozen.txt`. The ones that matter:
   `torch 2.13.0+cu130`, `transformers 5.12.1`, `sglang 0.5.21`,
   `flashinfer 0.6.18`, `accelerate 1.15.0`

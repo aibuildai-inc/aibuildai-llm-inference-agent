@@ -53,6 +53,18 @@ def ensure(cache_root: Path | None = None) -> dict:
                 os.environ[var] = str(cand)
                 found[var] = str(cand)
                 break
+    # nvcc invokes a plain `g++` from PATH to interrogate the host compiler, and
+    # conda-forge's gxx_linux-64 ships only `x86_64-conda-linux-gnu-g++`. On a
+    # machine with no system g++ that combination fails flashinfer's JIT with
+    #     nvcc fatal : Failed to preprocess host compiler properties
+    # even though CXX above points at a perfectly good compiler. Tell nvcc which
+    # host compiler to use rather than relying on the name it finds on PATH.
+    cxx = found.get("CXX")
+    if cxx and "-ccbin" not in os.environ.get("NVCC_PREPEND_FLAGS", ""):
+        prev = os.environ.get("NVCC_PREPEND_FLAGS", "").strip()
+        os.environ["NVCC_PREPEND_FLAGS"] = (prev + " " if prev else "") + f"-ccbin {cxx}"
+        found["NVCC_PREPEND_FLAGS"] = os.environ["NVCC_PREPEND_FLAGS"]
+
     # One warm cache for every JIT that matters here. Set only if the caller has not
     # already chosen a location.
     root = Path(cache_root or CACHE_ROOT)

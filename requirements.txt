@@ -12,10 +12,15 @@
 # which looks like a build-system fault rather than a missing dependency.
 #
 # A system g++ works. If there is none -- and there often is not on a GPU image
-# -- install conda's into the serving environment, where the harness looks for
-# it (task/harness/_toolchain.py sets CXX/CC from the interpreter's own bin/):
+# -- install conda's into the serving environment:
 #
 #     conda install -y -c conda-forge gxx_linux-64=12.4 gcc_linux-64=12.4
+#
+# No symlinks are needed. conda-forge ships only the prefixed name
+# (x86_64-conda-linux-gnu-g++) while nvcc looks for a plain `g++` on PATH, so
+# task/harness/_toolchain.py discovers the prefixed compiler in the
+# interpreter's own bin/, sets CXX/CC from it, and passes it to every nvcc
+# invocation via NVCC_PREPEND_FLAGS="-ccbin <compiler>".
 #
 # Pair the compiler with nvcc: nvcc refuses a host compiler newer than it
 # supports. The reference numbers were produced with conda gcc 12.4.0 against
