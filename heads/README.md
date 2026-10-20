@@ -1,9 +1,25 @@
 # The head weights
 
-The trained head is **626M**, too large for git, so it is distributed as a
-release asset rather than committed. Download `draft_head.pt` from this
-repository's releases page and place it in this directory, beside
-`draft_head.config.json`.
+The trained head is **626M**, too large for git, so it ships as a release asset
+rather than a committed file. It is attached to release **`v1.0.0`**. Place it in
+this directory, beside `draft_head.config.json`.
+
+While the repository is private, the plain download link will not work without
+credentials -- use the API form below, or copy the file over directly.
+
+```bash
+# public repo:
+curl -L -o heads/draft_head.pt \
+  https://github.com/importZL/AIBuildAI-SpecDec/releases/download/v1.0.0/draft_head.pt
+
+# private repo (token needs Contents: read):
+curl -L -H "Authorization: Bearer $GITHUB_TOKEN" \
+     -H "Accept: application/octet-stream" \
+     -o heads/draft_head.pt \
+  "$(curl -sS -H "Authorization: Bearer $GITHUB_TOKEN" \
+      https://api.github.com/repos/importZL/AIBuildAI-SpecDec/releases/tags/v1.0.0 \
+      | python3 -c 'import json,sys; print(next(a["url"] for a in json.load(sys.stdin)["assets"] if a["name"]=="draft_head.pt"))')"
+```
 
 ```
 file    draft_head.pt

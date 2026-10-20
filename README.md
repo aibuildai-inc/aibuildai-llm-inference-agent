@@ -56,7 +56,8 @@ detectable difference at this sample size*, not zero difference. Resolving a
 # 1. patch SGLang -- NOT optional
 ./tools/patch_sglang.sh
 
-# 2. fetch the head weights (see heads/README.md) to heads/draft_head.pt
+# 2. fetch the head weights from release v1.0.0 -> heads/draft_head.pt
+#    (see heads/README.md; needed only for eval/, not for search/ or train/)
 
 # 3. check prerequisites only (~2 min)
 export HF_HOME="$HOME/hf-cache"          # needs ~28 GB for the target

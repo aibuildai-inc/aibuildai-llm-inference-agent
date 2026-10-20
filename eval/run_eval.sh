@@ -20,6 +20,12 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REL="$(cd "$HERE/.." && pwd)"
 TASK="${SPECDEC_TASK:-$REL/task}"
 HEAD="${SPECDEC_HEAD:-$REL/heads/draft_head.pt}"
+if [ ! -f "$HEAD" ]; then
+  echo "head weights not found: $HEAD" >&2
+  echo "They are a release asset, not in git -- see heads/README.md (release v1.0.0)." >&2
+  echo "Only eval/ needs them; search/ and train/ do not." >&2
+  exit 1
+fi
 PY="${PYTHON:-$(command -v python3)}"
 OUT="$HERE/results"
 PHASE="all"; CHECK=0
