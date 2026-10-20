@@ -114,7 +114,10 @@ and no weights to start; it builds one from the task contract.
     #    From source you can skip that verdict; a frozen binary cannot.
     export AIBUILDAI_SKIP_SUBSCRIPTION_CHECK=1      # or: aibuildai login
 
-    # 1. install the framework (the order matters -- packages/ first)
+    # 1. install the framework (the order matters -- packages/ first).
+    #    The framework builds PostgreSQL 18.6 from source on first run and cannot
+    #    use a system one, so this environment needs a build toolchain too.
+    conda install -y -c conda-forge bison flex make gxx_linux-64=12.4 gcc_linux-64=12.4
     python3 -m venv ~/aibuildai-venv && . ~/aibuildai-venv/bin/activate
     export AIBUILDAI_CLIPROXYAPI_SOURCE_COMMIT=21c3972447b7b51b0c86bb53f4e2552bac2526a4
     cd framework
