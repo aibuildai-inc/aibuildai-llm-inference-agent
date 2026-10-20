@@ -134,8 +134,12 @@ def _run(a, qs, tok, gen, engine_args) -> None:
     from collections import defaultdict
     from pathlib import Path
     import json
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from _progress import Progress
+
     sweeps = []
     for _ in range(a.repeats):
+        bar = Progress(len(qs) * 2, a.out.rsplit("/", 1)[-1].removesuffix(".json"))
         per_cat = defaultdict(lambda: {"tokens": 0.0, "seconds": 0.0, "verify": 0})
         tot = {"tokens": 0.0, "seconds": 0.0, "verify": 0}
         records = []
@@ -153,6 +157,9 @@ def _run(a, qs, tok, gen, engine_args) -> None:
                 records.append({"question_id": q["question_id"], "category": q["category"],
                                 "turn": turn_i, "tokens": n, "seconds": dt,
                                 "spec_verify_ct": vct})
+                bar.update(1, f"{tot['tokens']/tot['seconds']:.1f} tok/s"
+                              + (f"  tau {tot['tokens']/tot['verify']:.2f}" if tot["verify"] else ""))
+        bar.close(f"{tot['tokens']/tot['seconds']:.2f} tok/s")
         sweeps.append({
             "tokens_per_second": tot["tokens"] / tot["seconds"],
             "tokens": tot["tokens"], "seconds": tot["seconds"], "verify": tot["verify"],

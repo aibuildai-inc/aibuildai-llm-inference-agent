@@ -112,6 +112,10 @@ def main() -> None:
 
     gen("hi")  # warm up
 
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from _progress import Progress
+    bar = Progress(len(prompts), f"{a.bench}:{'draft' if a.draft else 'plain'}")
+
     correct = 0; toks = 0; verify = 0; details = []
     t0 = time.perf_counter()
     for i, p in enumerate(prompts):
@@ -130,8 +134,8 @@ def main() -> None:
             ok = run_humaneval_case(rows[i]["prompt"], body, rows[i]["test"], rows[i]["entry_point"])
         correct += int(ok)
         details.append({"i": i, "ok": bool(ok)})
-        if (i + 1) % 50 == 0:
-            print(f"  {i+1}/{len(prompts)}  running score {correct/(i+1):.4f}", flush=True)
+        bar.update(1, f"score {correct/(i+1):.3f}")
+    bar.close(f"score {correct/len(prompts):.4f}")
     secs = time.perf_counter() - t0
 
     n = len(prompts)
