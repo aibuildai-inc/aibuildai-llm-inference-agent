@@ -37,9 +37,46 @@ command -v aibuildai >/dev/null \
   && echo "  aibuildai  : $(command -v aibuildai) ($(aibuildai -V 2>/dev/null | head -1))" \
   || { echo "  aibuildai  : NOT INSTALLED -- see Install in search/README.md" >&2; exit 1; }
 V_PY="$(command -v python3)"
-"$REPO/tools/patch_sglang.sh" >/dev/null 2>&1 \
-  && echo "  sglang     : patched" \
-  || echo "  sglang     : PATCH FAILED -- run $REPO/tools/patch_sglang.sh and read its output" >&2
+
+# The SGLang patch belongs in the SERVING environment -- the one run.conda_env
+# names, which the framework clones for each run's program environment -- not in
+# whichever environment the launcher happens to run from. Launching from the
+# framework env means `python3` here has no sglang at all, so patching with it
+# would both fail and be pointless. Verify the serving env instead.
+SERVING_ENV="$(grep -E '^\s+conda_env:' "$GEN" | head -1 | sed 's/.*conda_env:[[:space:]]*//')"
+if [ -n "$SERVING_ENV" ]; then
+  CONDA_BASE="$(conda info --base 2>/dev/null || true)"
+  SERVING_PY="$CONDA_BASE/envs/$SERVING_ENV/bin/python"
+  if [ -x "$SERVING_PY" ]; then
+    if "$SERVING_PY" - <<'PYCHK'
+import sys, pathlib
+try:
+    import sglang
+except Exception as e:
+    sys.exit(f"sglang not importable in the serving env: {e}")
+f = pathlib.Path(sglang.__file__).parent / "srt" / "models" / "qwen2_eagle.py"
+s = f.read_text()
+if "OUR-HEAD-PATCH" not in s or "del self.input_layernorm" in s:
+    sys.exit(f"NOT PATCHED: {f}")
+import importlib
+importlib.import_module("sglang.srt.models.qwen2_eagle")
+from sglang.srt.models.registry import ModelRegistry
+if "Qwen2ForCausalLMEagle" not in ModelRegistry.models:
+    sys.exit("patched but Qwen2ForCausalLMEagle is not in ModelRegistry")
+PYCHK
+    then
+      echo "  serving env: $SERVING_ENV -- patched, imports, architecture registered"
+    else
+      echo "  serving env: $SERVING_ENV -- PATCH/REGISTRY PROBLEM (see above)" >&2
+      echo "               run this inside that env:  $REPO/tools/patch_sglang.sh" >&2
+      exit 1
+    fi
+  else
+    echo "  serving env: '$SERVING_ENV' not found at $SERVING_PY" >&2
+    echo "               the framework will create a bare environment instead, and the" >&2
+    echo "               run's own agents will have to install the serving stack." >&2
+  fi
+fi
 # Model access comes from a Claude Code login; no Anthropic API key is needed
 # for it (framework/release/guide.md). ANTHROPIC_API_KEY also works if you
 # prefer. This login is separate from `aibuildai login`.
