@@ -8,13 +8,44 @@ from __future__ import annotations
 import argparse, json
 from pathlib import Path
 
-REF = {  # measured 2026-10-15 on A100-80GB, sglang 0.5.21 -- see REFERENCE.md
-    "mtbench_t0_speedup": 1.6637, "mtbench_t0_tau": 2.6579,
-    "mtbench_t1_speedup": 1.5430, "mtbench_t1_tau": 2.4414,
-    "mtbench_t0_plain": 52.659, "mtbench_t0_draft": 87.608, "mtbench_t0_hfeager": 17.295,
-    "gsm8k_plain": 0.9220, "gsm8k_draft": 0.9120,
-    "humaneval_plain": 0.8049, "humaneval_draft": 0.7988,
+# These MUST match REFERENCE.md, which is the document of record. They were
+# stale once -- carrying a previous head's figures while REFERENCE.md had been
+# updated -- and the consequence is the worst a verification tool can have: a
+# correct reproduction was reported as "+19.87% OUTSIDE +-2%". check_reference()
+# below now refuses to let the two drift apart silently.
+REF = {  # measured on A100-80GB, sglang 0.5.21 -- see REFERENCE.md
+    "mtbench_t0_speedup": 2.0089, "mtbench_t0_tau": 3.2061,
+    "mtbench_t1_speedup": 1.7909, "mtbench_t1_tau": 2.8802,
+    "mtbench_t0_plain": 52.214, "mtbench_t0_draft": 104.892, "mtbench_t0_hfeager": 16.783,
+    "gsm8k_plain": 0.9220, "gsm8k_draft": 0.9220,
+    "humaneval_plain": 0.8049, "humaneval_draft": 0.8049,
 }
+
+
+def check_reference(path) -> None:
+    """Warn loudly if REFERENCE.md disagrees with REF above.
+
+    --reference was accepted and then ignored, which is how the two came apart.
+    Parsing is deliberately crude: it only looks for the speedup row, because
+    that is the number a reproducer is judged against.
+    """
+    import re
+    try:
+        text = Path(path).read_text(encoding="utf-8")
+    except Exception:
+        return
+    m = re.search(r"\|\s*\*\*speedup\*\*\s*\|\s*\*\*([0-9.]+)x\*\*\s*\|\s*\*\*([0-9.]+)x\*\*",
+                  text)
+    if not m:
+        print(f"  note: could not find the speedup row in {path}; not cross-checked")
+        return
+    doc = {"mtbench_t0_speedup": float(m.group(1)), "mtbench_t1_speedup": float(m.group(2))}
+    bad = [(k, REF[k], v) for k, v in doc.items() if abs(REF[k] - v) > 1e-4]
+    if bad:
+        print("  *** REFERENCE MISMATCH -- this script's built-in numbers disagree with")
+        print(f"  *** {path}. Trust the document, not this script, and fix REF:")
+        for k, mine, theirs in bad:
+            print(f"  ***   {k}: script {mine}  document {theirs}")
 TOL = 2.0  # percent; the method arm resolves to about +-1.2%
 
 
@@ -23,6 +54,8 @@ def main() -> None:
     ap.add_argument("--results", required=True)
     ap.add_argument("--reference", default=None)
     a = ap.parse_args()
+    if a.reference:
+        check_reference(a.reference)
     R = Path(a.results)
 
     def load(n):
@@ -57,7 +90,7 @@ def main() -> None:
             fw = pl["tokens_per_second"] / hf["tokens_per_second"]
             hd = dr["tokens_per_second"] / pl["tokens_per_second"]
             print(f"  decomposition: framework {fw:.4f}x  x  head {hd:.4f}x  =  "
-                  f"{fw*hd:.4f}x over eager   (reference 3.0447 x 1.6637 = 5.0655)")
+                  f"{fw*hd:.4f}x over eager   (reference 3.111 x 2.0089 = 6.25)")
         tc = [d["sweeps"][0]["tokens"] for d in (hf, pl, dr) if d]
         print(f"  token-count fairness: {[int(x) for x in tc]}  "
               f"spread {100*(max(tc)-min(tc))/min(tc):.2f}%  "
@@ -86,7 +119,7 @@ def main() -> None:
         p = min(1.0, 2*sum(comb(n, j) for j in range(min(tot01, tot10)+1))/2**n)
         print(f"  COMBINED discordant {tot01}:{tot10}  McNemar p={p:.3f}  "
               f"{'no significant difference' if p > 0.05 else 'SIGNIFICANT'}")
-        print("  (reference was 2:8, p=0.109 -- not significant but consistently negative,")
+        print("  (reference was 7:7 combined over 664 items, McNemar exact p=1.000 --")
         print("   so a sub-1.5% degradation is not excluded by this sample size)")
 
     print("\nTolerance is ±2%: the speculative arm resolves to about ±1.2%, so anything")
