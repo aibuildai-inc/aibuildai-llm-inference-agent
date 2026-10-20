@@ -90,5 +90,21 @@ fi
   && echo "  model auth : ANTHROPIC_API_KEY is set" \
   || echo "  model auth : no API key set -- relying on your Claude Code login (that is supported)"
 
+# `aibuildai run` is gated by subscription/run_grant.py. A SOURCE build (this
+# one) can skip that verdict with AIBUILDAI_SKIP_SUBSCRIPTION_CHECK=1, which
+# cli_impl.py honours only when is_frozen() is false. A frozen binary cannot.
+if [ "${AIBUILDAI_SKIP_SUBSCRIPTION_CHECK:-}" = "1" ]; then
+  echo "  run gate   : skipped (AIBUILDAI_SKIP_SUBSCRIPTION_CHECK=1, source build)"
+elif "$V_PY" -c 'import sys; sys.path.insert(0,"'"$REPO"'/framework");
+from subscription import store
+sys.exit(0 if store.load() is not None else 1)' 2>/dev/null; then
+  echo "  run gate   : signed in"
+else
+  echo "  run gate   : NOT signed in, and the skip flag is not set." >&2
+  echo "               Either:  aibuildai login" >&2
+  echo "               or:      export AIBUILDAI_SKIP_SUBSCRIPTION_CHECK=1   (source builds only)" >&2
+  exit 1
+fi
+
 echo "=== launching ==="
 exec aibuildai run "$GEN"

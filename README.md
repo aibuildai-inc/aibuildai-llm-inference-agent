@@ -65,7 +65,7 @@ Pick the one you want; they are independent.
 |---|---|---|
 | **A** verify the published number | the head weights, no training | the 2.0089x reproduced, or a number to compare |
 | **B** train your own head | a GPU and hours | a head of your own from this recipe |
-| **C** re-run the end-to-end search | a GPU, 48 h, **an AIBuildAI account** | the agent builds a head from the task contract |
+| **C** re-run the end-to-end search | a GPU, 48 h, and either an AIBuildAI login or the source-build skip flag | the agent builds a head from the task contract |
 
 ## Quickstart A — verify the published number
 
@@ -110,9 +110,9 @@ by one `prepare.py` run, and the file explains which increments did what.
 This is the agent that *found* the head, not the head. It needs no trained head
 and no weights to start; it builds one from the task contract.
 
-    # 0. `aibuildai run` is gated on an AIBuildAI account: the framework fetches a
-    #    signed lease and fails closed without one. A and B above need no account;
-    #    only C does. See search/README.md, "If you have no AIBuildAI account".
+    # 0. `aibuildai run` is gated: it fetches a signed lease and fails closed.
+    #    From source you can skip that verdict; a frozen binary cannot.
+    export AIBUILDAI_SKIP_SUBSCRIPTION_CHECK=1      # or: aibuildai login
 
     # 1. install the framework (the order matters -- packages/ first)
     python3 -m venv ~/aibuildai-venv && . ~/aibuildai-venv/bin/activate
@@ -130,9 +130,7 @@ and no weights to start; it builds one from the task contract.
     # 3. patch SGLang -- NOT optional
     ./tools/patch_sglang.sh
 
-    # 4. sign in to the product (separate from the Claude login that supplies
-    #    model access), then launch (10 steps, 48 h budget; ours used 36 h)
-    aibuildai login
+    # 4. launch (10 steps, 48 h budget; the published run used 36 h)
     ./search/launch.sh [playground-dir]      # default ~/aibuildai-playground
 
 **Read `search/README.md` before launching.** It covers what the repository

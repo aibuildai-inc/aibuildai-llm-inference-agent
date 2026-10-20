@@ -89,7 +89,7 @@ joined to the current directory. Substitute, do not interpolate.
 
 | | |
 |---|---|
-| **an AIBuildAI account** | `aibuildai run` is gated. `framework/subscription/run_grant.py` requires a signed lease fetched from AIBuildAI's server for a signed-in user, verified against a public key compiled into the build, and it **fails closed** -- there is no network-unreachable fallback and no self-hosted or offline-only mode. Run `aibuildai login` first. **Without an account you cannot run the search**, however complete the rest of your setup is. See "If you have no account" below |
+| authorisation for `aibuildai run` | Either sign in (`aibuildai login`) **or**, on a source build like this one, `export AIBUILDAI_SKIP_SUBSCRIPTION_CHECK=1`. `cli_impl.py` honours that flag only when `is_frozen()` is false, so it works from source and not from a shipped binary. Without one or the other the run stops at *"You are not signed in"* |
 | model access | **a Claude Code login is enough -- no Anthropic API key is required** (`framework/release/guide.md`). An `ANTHROPIC_API_KEY` works too. This is a *separate* login from `aibuildai login`: the first supplies model tokens, the second authorises the run |
 | internet | the framework self-provisions PostgreSQL, ruff, tectonic and caddy by downloading pinned tarballs on first run, and the target is a ~28 GB download |
 | conda | `run.conda_env: sglang-baseline` names a host environment cloned into the run's program environment; cloning needs conda initialised in the launching shell. It must hold torch, SGLang and flashinfer (`../requirements.txt`). If no such environment exists the framework creates a fresh Python 3.11 one instead, and the run's own agents would then have to install the serving stack -- slower, and not what the published run did |
@@ -119,7 +119,14 @@ so the end-to-end search has not been re-executed from this copy.
 
 ## If you have no AIBuildAI account
 
-Everything else in this repository works without one:
+You can still run the search: this is a source build, so
+`AIBUILDAI_SKIP_SUBSCRIPTION_CHECK=1` skips the licence verdict
+(`cli_impl.py`, guarded by `not is_frozen()`). `subscription/run_grant.py` is
+otherwise a hard gate -- a signed lease from AIBuildAI's server, verified
+against a compiled-in public key, failing closed with no offline-only mode -- so
+that flag is the sanctioned path for running from source.
+
+Everything else in this repository needs no account and no flag:
 
 * **Quickstart A** -- verify the published number with `eval/` and the released
   head. No framework, no account.
