@@ -10,8 +10,15 @@ PG="${1:-$HOME/aibuildai-playground}"
 EVERY="${2:-60}"
 PY="$(command -v python3)"
 
-RUN="$(ls -dt "$PG"/*/ 2>/dev/null | grep -v run_config | head -1)"
-[ -n "$RUN" ] || { echo "no run directory under $PG" >&2; exit 1; }
+# The run directory sits at playground/<task_name>/<timestamp>_<runid>/, not
+# directly under the playground. Accept either depth and identify the run by the
+# file every run has, rather than by position -- an earlier version globbed one
+# level and silently picked the TASK directory, whose workspace/ does not exist.
+RUN=""
+for cand in $(ls -dt "$PG"/*/ "$PG"/*/*/ 2>/dev/null); do
+  if [ -f "$cand/run_config.json" ]; then RUN="$cand"; break; fi
+done
+[ -n "$RUN" ] || { echo "no run directory under $PG (looked for run_config.json one and two levels down)" >&2; exit 1; }
 SEARCH="$RUN/workspace/search_1"
 echo "watching: $RUN"
 echo
