@@ -3,6 +3,23 @@
 #
 # Install torch/sglang/flashinfer per their own instructions for your CUDA
 # version first -- pip alone will not get the right CUDA build.
+#
+# ALSO REQUIRED, and not installable from this file: a C++ host compiler that
+# nvcc accepts. flashinfer JIT-compiles CUDA kernels on first use, and nvcc
+# interrogates a host compiler to do it. Without one the first arm dies with
+#     nvcc fatal : Failed to preprocess host compiler properties
+#     ninja: build stopped: subcommand failed.
+# which looks like a build-system fault rather than a missing dependency.
+#
+# A system g++ works. If there is none -- and there often is not on a GPU image
+# -- install conda's into the serving environment, where the harness looks for
+# it (task/harness/_toolchain.py sets CXX/CC from the interpreter's own bin/):
+#
+#     conda install -y -c conda-forge gxx_linux-64=12.4 gcc_linux-64=12.4
+#
+# Pair the compiler with nvcc: nvcc refuses a host compiler newer than it
+# supports. The reference numbers were produced with conda gcc 12.4.0 against
+# nvcc 12.9.
 torch==2.13.0+cu130
 transformers==5.12.1
 sglang==0.5.21
