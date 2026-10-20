@@ -111,7 +111,8 @@ and no weights to start; it builds one from the task contract.
     cd ..
 
     # 2. confirm it installed as the revision that produced the result
-    aibuildai -V                 # 2026.8.4+439.gd4c0692e7.dirty
+    aibuildai -V                 # AIBuildAI science-2026-08-04+439.gd4c0692e7.dirty
+                                 # 0.0.0+unknown here means _version.py did not survive the clone
 
     # 3. patch SGLang -- NOT optional
     ./tools/patch_sglang.sh

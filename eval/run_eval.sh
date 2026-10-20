@@ -20,12 +20,6 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REL="$(cd "$HERE/.." && pwd)"
 TASK="${SPECDEC_TASK:-$REL/task}"
 HEAD="${SPECDEC_HEAD:-$REL/heads/draft_head.pt}"
-if [ ! -f "$HEAD" ]; then
-  echo "head weights not found: $HEAD" >&2
-  echo "They are a release asset, not in git -- see heads/README.md (release v1.0.0)." >&2
-  echo "Only eval/ needs them; search/ and train/ do not." >&2
-  exit 1
-fi
 PY="${PYTHON:-$(command -v python3)}"
 OUT="$HERE/results"
 PHASE="all"; CHECK=0
@@ -49,7 +43,9 @@ printf '  release   : %s\n  task      : %s\n  head      : %s\n' "$REL" "$TASK" "
 printf '  python    : %s\n  TMPDIR    : %s\n  JIT cache : %s\n' "$PY" "$TMPDIR" "$SPECDEC_JIT_CACHE"
 [ -n "${HF_HOME:-}" ] && printf '  HF_HOME   : %s\n' "$HF_HOME" \
   || echo "  HF_HOME   : UNSET -- model will download to ~/.cache/huggingface (~30 GB)"
-[ -f "$HEAD" ] || { echo "head not found: $HEAD" >&2; exit 1; }
+# The head is NOT required to verify prerequisites -- versions, the SGLang patch
+# and the GPU are all independent of it -- so its absence is reported with the
+# other checks below and only refused when an arm is about to load it.
 [ -f "$TASK/models.json" ] || { echo "task not found: $TASK/models.json" >&2; exit 1; }
 
 echo "=== prerequisites ==="
@@ -82,7 +78,30 @@ for f in mt_bench_question.jsonl gsm8k_test.jsonl humaneval.jsonl; do
   [ -f "$HERE/$f" ] && echo "  data: $f ($(wc -l < "$HERE/$f") lines)" \
     || { echo "  data MISSING: $f" >&2; exit 1; }
 done
-[ "$CHECK" = "1" ] && { echo; echo "--check passed. Drop --check to run."; exit 0; }
+if [ -f "$HEAD" ]; then
+  echo "  head        : $(basename "$HEAD") ($(stat -c %s "$HEAD") bytes)"
+else
+  echo "  head        : NOT PRESENT at $HEAD"
+  echo "                a release asset, not in git -- see heads/README.md (release v1.0.0)"
+  echo "                needed only by eval/; search/ and train/ do not use it"
+fi
+
+if [ "$CHECK" = "1" ]; then
+  echo
+  if [ -f "$HEAD" ]; then
+    echo "--check passed. Drop --check to run."
+  else
+    echo "--check passed except the head weights. Fetch them, then drop --check to run."
+  fi
+  exit 0
+fi
+
+# Past this point the head is required: every arm below loads it.
+if [ ! -f "$HEAD" ]; then
+  echo "cannot measure without the head weights: $HEAD" >&2
+  echo "See heads/README.md (release v1.0.0). Re-run with --check to verify the rest." >&2
+  exit 1
+fi
 
 # package the head into an SGLang draft dir once
 SUB="$(mktemp -d "$TMPDIR/specdec_sub_XXXXXX")"
