@@ -1,0 +1,12 @@
+playground/
+public/
+tmp/
+*.tar.gz
+*.pt
+*.pth
+__pycache__/
+*.pyc
+.git/
+dist/
+build/
+catboost_info/

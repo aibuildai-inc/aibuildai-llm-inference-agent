@@ -1,0 +1,5 @@
+{%- macro render() -%}
+# Search
+
+This run uses Agentic Search. One Manager Agent decides the whole search: it asks a Designer for plans, runs the plans it chooses as complete Workers, reads each score, and combines the results it keeps. One complete Worker owns each plan end to end: it inspects the task, implements the plan, runs it, checks visible evidence, and repairs its own work before it finishes. The framework scores each finished Worker output.
+{%- endmacro %}

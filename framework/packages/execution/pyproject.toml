@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aibuildai-exec"
+dynamic = ["version"]
+description = "Local process execution and resource scopes for Linux x86_64."
+requires-python = ">=3.11,<3.14"
+classifiers = ["Operating System :: POSIX :: Linux"]
+dependencies = []
+
+[project.optional-dependencies]
+gpu = ["nvidia-ml-py>=12", "pydantic>=2.12.2,<3"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+aibuildai_exec = ["py.typed"]

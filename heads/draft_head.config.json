@@ -1,0 +1,14 @@
+{
+  "n_layers": 1,
+  "inter": 13824,
+  "hidden": 5120,
+  "n_heads": 40,
+  "kv_heads": 8,
+  "head_dim": 128,
+  "rope_theta": 1000000.0,
+  "sglang_overrides": {
+    "speculative_num_steps": 4,
+    "speculative_eagle_topk": 24,
+    "speculative_num_draft_tokens": 64
+  }
+}

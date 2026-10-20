@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aibuildai-conversation"
+dynamic = ["version"]
+description = "Model conversation declarations and execution for Linux."
+requires-python = ">=3.11,<3.14"
+classifiers = ["Operating System :: POSIX :: Linux"]
+dependencies = [
+    "aibuildai-exec",
+    "claude-agent-sdk>=0.2.152,<0.3",
+    "anyio>=4,<5",
+    "mcp>=2.1.1,<3",
+    "jsonschema>=4.26,<5",
+    "PyYAML>=6.0,<7",
+    "Pillow>=12.3,<13",
+    "pydantic>=2.12.2,<3",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+aibuildai_conversation = ["model_catalog.json", "_native/*"]

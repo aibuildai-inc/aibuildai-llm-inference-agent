@@ -1,0 +1,196 @@
+# EAGLE draft-head training for SGLang speculative decoding.
+#
+# The TASK fixes the target (Qwen/Qwen2.5-14B-Instruct) and the head architecture
+# (reference/eagle_head.py). We train the head's weights, choose its size, and
+# propose the three speculative tree parameters. Everything here is ordinary
+# source; later steps may change any value.
+
+# The fixed target. Read from models.json at runtime too, but recorded here so
+# prepare.py / train.py do not each re-parse models.json. models.json is the
+# authority; this must match it.
+# Relative to this file. models.json remains the authority; these values must match it.
+models_json: ../task/models.json
+
+# --- training corpus -------------------------------------------------------
+# Generate features by teacher-forcing the TARGET over a 4-domain instruction
+# mix that matches the benchmark prompt domains (chat / reasoning / code /
+# rewrite). All datasets are already in the local HF cache.
+# STEP 7: SCALE the WEAKEST, equally-weighted domain. The scored 30-prompt
+# benchmark is EXACTLY equal thirds chat(0-9) / reasoning-math(10-19) / code(20-29),
+# yet dev shows chat is by far the weakest (accept 0.293 vs reasoning 0.559 / code
+# 0.504). Chat training was pinned at dolly's 8000-row single-dataset ceiling. So add
+# a SECOND, disjoint chat/instruction dataset -- yahma/alpaca-cleaned, empty-input
+# (pure-instruction "Explain/Describe/Name..." rows that match the benchmark chat
+# style) -- 6000 new chat prompts -> chat 14000, corpus ~4.37M -> ~6M tokens (the
+# recipe's best-known head used 5.9M). Built INCREMENTALLY for time: gen_chat_aug.py
+# generates+collects only the alpaca slice (data/chat_aug.pt), merge_corpus.py
+# concatenates it onto the existing train.pt -> train_v2.pt (train.py loads
+# data.train_file). A full `prepare.py` run with the mix below reproduces an
+# equivalent corpus. Everything else (geometry inter 13824, tree 3/24/64, unroll K=3
+# gamma 0.8, 4 epochs, lr) held fixed vs step 6, so this isolates the data lever.
+# Factor targeted: ACCEPTANCE (tau); per-cycle cost untouched (identical geometry+tree).
+# STEP 9: REBALANCE composition toward the SCORED equal thirds. The 30-prompt
+# benchmark is exactly 1/3 chat / 1/3 reasoning / 1/3 code, yet the step-5..7 corpus
+# is chat 14000 / reasoning 3500 / code 3500 = 67% chat. Prior steps kept scaling
+# CHAT (dev-weakest, accept 0.281) and it SATURATED (step 7: +1.7%). But the scored
+# metric is the EQUAL-WEIGHT average of per-domain tau, so the marginal token belongs
+# where marginal return is highest -- the STARVED, responsive reasoning/code domains
+# (step-8-head dev accept 0.449 / 0.396, top1 0.866 / 0.795), each scored at 2x its
+# training share. gen_rc_aug.py generates a FRESH, disjoint reasoning(+5000)+code(+5000)
+# slice (high shuffle offset + dev-prefix exclusion -> no train/dev contamination),
+# merge_corpus_v3.py concatenates it onto train_v2.pt -> train_v3.pt. Result mix:
+# chat 14000 / reasoning ~8500 / code ~8500 (~45/27.5/27.5, much nearer equal thirds;
+# chat not reduced so no domain regresses). Everything else held fixed vs step 7/8
+# (geometry inter 13824, unroll K=3 gamma 0.8, 4 epochs, lr, tree 4/24/64), so this
+# isolates the composition lever. Factor targeted: ACCEPTANCE (tau); per-cycle cost
+# untouched (identical geometry + identical tree).
+# STEP 10: PUSH the rebalance further toward the scored equal thirds, PURELY
+# ADDITIVELY. Step 9 proved the composition lever still pays (reasoning+code
+# 3500->8500 each gained +2.8% harness tau at fixed geometry+tree). train_v3 is
+# still chat 14000 / reasoning 8500 / code 8500 (45/27/27) while the benchmark is
+# exactly equal thirds, so the marginal token still belongs in the starved,
+# still-responsive reasoning/code domains. gen_rc_aug2.py generates a SECOND fresh
+# disjoint +3000 reasoning + +3000 code slice (shuffle skip=12000, past both the
+# original and the step-9 rc_aug slices, + dev-prefix exclusion -> no contamination);
+# merge_corpus_v4.py concatenates it onto train_v3.pt -> train_v4.pt. Result mix:
+# chat 14000 / reasoning 11500 / code 11500 (~38/31/31, nearer equal thirds; chat
+# UNTOUCHED so no domain regresses -- strictly more supervision). Everything else
+# held fixed vs step 9 (geometry inter 13824 / 1 layer, unroll K=3 gamma 0.8, 4
+# epochs, lr, tree 4/24/64), so this isolates the composition lever. Factor
+# targeted: ACCEPTANCE (tau); per-cycle cost untouched (identical geometry + tree).
+data:
+  prepared: data
+  train_file: train_v4.pt   # step-10 corpus (train_v3 + rc_aug2); see gen_rc_aug2.py
+  max_len: 512          # tokens per templated conversation (prompt + response)
+  seed: 0
+  # STEP 5: SCALE the self-distilled corpus toward the proven-best volume (~5-6M
+  # tokens; the recipe's best inter-13824 head reached tau 3.737 at 5.9M tokens,
+  # while step 4 sat at 2.37M / tau 2.732). Step 4 kept composition at equal scored
+  # thirds and found chat is the acceptance CEILING (dev chain-accept chat 0.48 vs
+  # reasoning/code ~1.04-1.06). So spend the new data where tau is worst: TILT
+  # HEAVILY toward chat (the recipe's "rebalance toward the weakest domain, do not
+  # scale uniformly" lever), while still scaling reasoning/code above step 4's
+  # counts so neither regresses. Hold geometry (inter 13824), tree (3/24/64),
+  # self-distillation, loss, schedule (2 epochs) fixed, so this step isolates the
+  # data-SCALE+composition change. Factor targeted: ACCEPTANCE (tau); per-cycle cost
+  # untouched (identical geometry + identical tree). chat 8000 / reasoning 3500 /
+  # code 3500 = 15000 prompts, ~4.5-5M tokens expected.
+  self_distill: true    # generate target continuations instead of using gold text
+  gen_max_new: 320      # max new tokens generated per prompt (caps seq length/time)
+  gen_batch: 48         # prompts per batched greedy generate call
+  prompt_max: 256       # cap prompt length so there is room to generate
+  mix:
+    - {dataset: databricks/databricks-dolly-15k, name: null, split: train,
+       instruction_field: instruction, context_field: context, response_field: response,
+       domain: chat, count: 8000}
+    - {dataset: yahma/alpaca-cleaned, name: null, split: train,
+       instruction_field: instruction, context_field: input, response_field: output,
+       domain: chat, count: 6000}   # STEP 7: 2nd disjoint chat set (empty-input rows; see gen_chat_aug.py)
+    - {dataset: meta-math/MetaMathQA, name: null, split: train,
+       instruction_field: query, context_field: null, response_field: response,
+       domain: reasoning, count: 3500}
+    - {dataset: sahil2801/CodeAlpaca-20k, name: null, split: train,
+       instruction_field: instruction, context_field: input, response_field: output,
+       domain: code, count: 3500}
+  eval_sequences: 120   # held-out sequences for eval.py (disjoint tail of each domain)
+  collect_batch: 8      # sequences per target forward when collecting features
+
+# --- head geometry ---------------------------------------------------------
+# STEP 2: widen MLP to inter 13824 (327.7M params), the recipe's proven-best head
+# geometry. 1 layer, hidden 5120 (target's), GQA 40:8, head_dim 128.
+# hidden/n_heads/kv_heads/head_dim are taken from the target geometry at build
+# time; only n_layers and inter are free here.
+# STEP 5: RE-TESTED inter 16384 (367.0M) at the new 4.37M-token scale (the recipe
+# says re-test width once data is scaled). Measured TIED same-session: inter 16384
+# -> speedup 1.842 / tau 3.013 vs inter 13824 -> 1.846 / tau 3.018. Width is still a
+# null even at 4.37M tokens; kept the simpler 13824 head (same speed, fewer params).
+head:
+  n_layers: 1
+  inter: 13824
+  fc_bias: false
+
+# --- training --------------------------------------------------------------
+# EAGLE single-step feature regression: head predicts the next post-norm feature
+# from (prev feature, next-token embedding); loss = SmoothL1(feature) + ce_weight
+# * CE(lm_head(pred), next-next token). Regression-dominant, per the recipe.
+# STEP 5: epochs 2->3->4 on the 4.37M-token corpus, each a genuine (deterministic-tau)
+# gain -- the head is still training-limited at 4 epochs:
+#   2 ep: tau 3.0181, speedup 1.846/1.841
+#   3 ep: tau 3.0608, speedup 1.884/1.878
+#   4 ep: tau 3.1628, speedup 1.947   <- BANKED (best measured speedup)
+#   5 ep: tau 3.1786, speedup 1.918   (PLATEAU: tau gain collapsed to +0.5%, speedup fell)
+# tau reproduced to 17 digits per head, so these deltas are real, not noise. NOTE the
+# recipe's anti-correlation (rule 10): dev chain-accept FELL monotonically
+# (0.772->0.641->0.585->0.514) as epochs rose while the SCORED-prompt tau ROSE then
+# flattened -- decide by the harness, not dev. The epoch lever SATURATES at 4-5: 4 epochs
+# gave the highest measured speedup, so it is banked. Beyond ~4 epochs, gains flatten.
+# STEP 6: MULTI-STEP UNROLL training. train.py was pure single-step (steps<=5): the
+# head only ever saw the TRUE target feature as input, yet at decode SGLang drafts
+# speculative_num_steps (=3) deep, feeding the head's OWN predicted feature at depth
+# >=1. That exposure-bias gap sits at exactly the depths the 3/24/64 tree uses, where
+# tau>2 comes from. Unroll runs the head K times per batch: iteration 0 uses the true
+# feature; iteration t>0 uses the head's own (detached) prediction from t-1, with the
+# true token embedding and position shifted by t. Per-step losses are combined with
+# decaying weights gamma^t normalised to sum 1 (so the loss scale and tuned lr are
+# unchanged, and step 0 stays dominant -- FLAT unroll weights were a prior-run null).
+# K=unroll_steps matches speculative_num_steps so we train the depth we speculate at.
+# unroll_steps=1 reproduces the exact single-step objective. Geometry (inter 13824),
+# tree (3/24/64), corpus (4.37M chat-tilted), epochs (4), lr held fixed, so this step
+# isolates the loss change. Factor targeted: ACCEPTANCE (tau) via deeper supervision.
+train:
+  epochs: 4
+  # STEP 8 FINDING: retraining at unroll_steps=4 to match the new depth-4 tree did NOT
+  # help -- it slightly HURT acceptance (K4 head tau 3.638 vs the step-7 K3 head's 3.659
+  # at the SAME 4/16/64 tree). The 4-way normalised unroll weights [0.339,0.271,0.217,
+  # 0.173] dilute the dominant step-0 (shallow) supervision that drives most of tau,
+  # while the K3 head already GENERALISES to depth-4 decoding. So the banked head is the
+  # step-7 K3 head (unroll_steps=3) and the step-8 win is purely the decode-time tree
+  # (sglang_overrides below). Keep unroll_steps=3; train.py reproduces the banked head.
+  unroll_steps: 3       # EAGLE unroll depth (K4 retrain measured worse; see above)
+  unroll_decay: 0.8     # per-step loss weight gamma^t (normalised); step 0 dominant
+  batch_size: 8         # sequences per optimizer micro-step
+  grad_accum: 2
+  lr: 3.0e-4
+  warmup_frac: 0.03
+  weight_decay: 0.0
+  ce_weight: 0.1
+  smoothl1_beta: 1.0    # Huber transition (EAGLE default); feature rms ~2.9, outliers to ~110
+  max_grad_norm: 1.0
+  bf16: true
+  output_dir: runs/head_v4   # step-10 further-rebalanced-corpus head (runs/head_v3 is the banked step-9 K3 head)
+  log_every: 20
+  ckpt_every_opt: 1500   # periodic head.pt save so a killed run still leaves a loadable head
+
+# --- speculative tree (sglang_overrides) -----------------------------------
+# Defaults in models.json are 4/8/32 and untuned. STEP 4 swept the tree on this
+# step's trained head (benchmark-only, no retraining -- the recipe's cheapest
+# unexplored lever, never tried by any prior run). Same-session, two measurements
+# each: 4/16/64 -> 1.627 (tau 2.779), 4/16/48 -> 1.627 (tau 2.730), 4/16/56 ->
+# 1.615 (tau 2.752), and 3/24/64 -> 1.676/1.693 (tau 2.732). 3/24/64 wins by
+# +3.5%: ONE fewer drafting step (3 vs 4) cuts a sequential draft-head forward
+# per cycle -- the batch-1 bottleneck -- while topk 24 keeps the 64-token tree's
+# acceptance nearly intact (tau only 2.779->2.732). This moves the PER-CYCLE-COST
+# factor. Satisfies num_steps*topk (72) >= num_draft_tokens (64).
+# STEP 8: DEEPEN the speculative tree from 3 to 4 steps. The step-7 head was DEPTH-
+# limited: measured tau 3.359 at num_steps=3 is 84% of that tree's ceiling (num_steps+1
+# =4 tokens/verify), so breadth tuning could only trade cost -- the only way to raise the
+# tau CEILING is more depth. num_steps is a DECODE-TIME setting (same head weights), so
+# this was swept on the banked step-7 head with NO retraining. Same-session sweep
+# (baseline ~52.4 throughout, tau deterministic):
+#   3/24/64 (step-7)  speedup 2.036  tau 3.359   <- depth-3 ceiling 4, 84% utilised
+#   4/16/64           speedup 2.113  tau 3.659   (+3.8% / +8.9%: depth gain > +1 draft fwd)
+#   4/24/64 BANKED    speedup 2.130  tau 3.701   (topk 24 > 16 at depth 4, same verify cost)
+#   5/24/64           speedup 2.029  tau 3.728   (+1 draft fwd now COSTS more than the
+#                                                 tiny tau gain -- past the optimum)
+# Peak at num_steps=4. num_draft_tokens held at 64 (recipe: bigger trees lose throughput);
+# topk 24 keeps enough branching at the extra depth. Satisfies num_steps*topk(96)>=64.
+# Factor targeted: BOTH -- more depth raises acceptance (tau 3.359->3.701, +10.2%) while
+# one extra draft forward raises per-cycle cost; net speedup +4.6% because depth-4 pays
+# and depth-5 does not. Head weights unchanged from step 7 (md5 bb9fe2a4).
+sglang_overrides:
+  speculative_num_steps: 4
+  speculative_eagle_topk: 24
+  speculative_num_draft_tokens: 64
+
+export:
+  dirname: full

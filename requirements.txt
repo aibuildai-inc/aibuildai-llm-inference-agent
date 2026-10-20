@@ -1,0 +1,14 @@
+# The versions these results were measured with. Others may work; these are what
+# eval/REFERENCE.md was produced on, and run_eval.sh warns when they differ.
+#
+# Install torch/sglang/flashinfer per their own instructions for your CUDA
+# version first -- pip alone will not get the right CUDA build.
+torch==2.13.0+cu130
+transformers==5.12.1
+sglang==0.5.21
+flashinfer==0.6.18
+accelerate==1.15.0
+numpy
+pyyaml          # train/recipe.yaml drives the training scripts
+safetensors
+huggingface_hub

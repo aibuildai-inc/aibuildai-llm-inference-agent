@@ -1,0 +1,14 @@
+[submodule "submodules/cli-proxy-api"]
+	path = submodules/cli-proxy-api
+	url = https://github.com/t2ance/CLIProxyAPI.git
+	branch = main
+# Kept although no runtime module imports it, so it is absent from
+# aibuildai_version.py's RUNTIME_SUBMODULE_PATHS. It is the authoring source for the
+# NatureBench task folder's own copy of eval_service.py: a run scores that
+# task through the folder's copy, and this pin is what that copy is written
+# from and can be diffed against. #1543 removed a hand-synced copy with no
+# such source, and it had drifted far enough to record a below-SOTA result as
+# surpassing SOTA (#1537).
+[submodule "submodules/nature-bench"]
+	path = submodules/nature-bench
+	url = https://github.com/FrontisAI/NatureBench

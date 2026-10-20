@@ -1,0 +1,19 @@
+# Core dependencies for aibuildai (core_code)
+claude-agent-sdk>=0.2.148,<0.3
+kaggle>=2.0.0,<3
+Levenshtein>=0.27.3,<1
+numpy>=2.4,<3
+posthog>=7.9,<8
+py7zr>=1.1,<2
+pycocotools>=2.0,<3
+pydantic>=2.12.2,<3
+PyYAML>=6.0,<7
+questionary>=2.1,<3
+scikit-learn>=1.8,<2
+scipy>=1.17,<2
+sentence-transformers>=5.5,<6
+openreview-py>=1.53,<3
+arxiv>=2.2,<4
+tqdm>=4.66,<5
+requests>=2.32,<3
+ruamel.yaml>=0.18,<1

@@ -1,0 +1,38 @@
+{
+  "tasks": {
+    "detecting-insults-in-social-commentary": {
+      "default": "claude-opus-4-8"
+    },
+    "leaf-classification": {
+      "default": "claude-sonnet-5",
+      "by_role": {
+        "coder": "claude-opus-4-8",
+        "aggregator": "claude-opus-4-8"
+      }
+    }
+  },
+  "families": [
+    {
+      "name": "image-denoising-restoration",
+      "member_tasks": [
+        "denoising-dirty-documents"
+      ],
+      "routing": {
+        "default": "claude-opus-4-8"
+      }
+    },
+    {
+      "name": "tabular-regression",
+      "member_tasks": [
+        "nomad2018-predict-transparent-conductors"
+      ],
+      "routing": {
+        "default": "claude-haiku-4-5",
+        "by_role": {
+          "designer": "claude-sonnet-5",
+          "coder": "claude-sonnet-5"
+        }
+      }
+    }
+  ]
+}

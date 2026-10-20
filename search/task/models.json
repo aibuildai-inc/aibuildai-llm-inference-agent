@@ -1,0 +1,50 @@
+{
+  "_comment": "THE ONLY FILE TO EDIT when pointing this task at a different target model. The TARGET is fixed by the task; the submission trains the DRAFT HEAD that SGLang runs as its EAGLE proposer.",
+  "speed_pair": {
+    "purpose": "throughput measurement; this is where the score comes from",
+    "target": "Qwen/Qwen2.5-14B-Instruct",
+    "target_note": "Qwen2ForCausalLM, 14.7B, 48 layers, hidden 5120, GQA 40:8, vocab 152064. bf16 weights are ~29.5 GB. SGLang holds ONE copy plus the draft head and a KV budget.",
+    "draft": null,
+    "draft_note": "null on purpose: choosing the proposer is part of the task",
+    "dtype": "bfloat16",
+    "min_free_vram_gb": 60
+  },
+  "gate_pair": {
+    "purpose": "fp32 exactness on the SAME target the benchmark times, so the verified path is the measured path",
+    "target": "Qwen/Qwen2.5-14B-Instruct",
+    "target_note": "fp32 weights. Used ONLY by harness/gate_eager_reference.py, which is a debugging aid and not this task's gate: SGLang owns verification here, and cannot run fp32 anyway. It loads the reference and the submission SEQUENTIALLY, never both at once.",
+    "draft": null,
+    "dtype": "float32",
+    "min_free_vram_gb": 66,
+    "_comment": "Retained for the eager reference checker only. This task's real gate is 'the draft loads, nothing fell back, and speculation actually ran' -- see harness/check_draft.py."
+  },
+  "max_new_tokens": 128,
+  "benchmark_prompt_limit": 30,
+  "gate_prompt_limit": 8,
+  "_how_to_change_model": [
+    "1. Set the same HuggingFace id in BOTH speed_pair.target and gate_pair.target.",
+    "2. Update target_note with params / layers / hidden / heads / kv_heads / vocab. The",
+    "   submission reads it to size the head, and the harness reads num_attention_heads",
+    "   and head_dim from the TARGET's own config.json, not from here.",
+    "3. Resize min_free_vram_gb. SGLang holds ONE bf16 target copy plus the draft, so the",
+    "   speed pair needs roughly 2 bytes/param + the draft + a KV budget, not two copies.",
+    "4. Leave dtype, max_new_tokens and the prompt limits alone -- they are the measuring",
+    "   instrument and changing them makes scores incomparable across runs.",
+    "5. The SGLang model file that hosts the draft must exist for the target's architecture",
+    "5. Set sglang.draft_architecture / draft_model_type from SGLang's registry for the    new target's family. No file outside models.json names a model or an architecture."
+  ],
+  "sglang": {
+    "_comment": "Engine settings pinned identically for BOTH arms. Changing these makes scores incomparable.",
+    "mem_fraction_static": 0.6,
+    "max_total_tokens": 4096,
+    "disable_cuda_graph": false,
+    "speculative_algorithm": "EAGLE",
+    "speculative_num_steps": 4,
+    "speculative_eagle_topk": 8,
+    "speculative_num_draft_tokens": 32,
+    "_tunable": "speculative_num_steps / eagle_topk / num_draft_tokens MAY be proposed by the submission in head_config.json under 'sglang_overrides'; everything else is fixed.",
+    "draft_architecture": "Qwen2ForCausalLMEagle",
+    "draft_model_type": "qwen2",
+    "_draft_architecture_note": "SGLang's EAGLE class for the TARGET's architecture, and the model_type its config needs. For this target it is Qwen2ForCausalLMEagle. It lives here rather than in code because it changes with the target, and SGLang's registry names these inconsistently across model families -- some put Eagle first, some last, some carry a version number. Never guess it: read sglang/srt/models/registry.py (ModelRegistry.models) and copy the exact string for the target's family. If the family has no entry, this task cannot host that target without writing the model file first."
+  }
+}

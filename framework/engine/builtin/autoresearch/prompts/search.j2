@@ -1,0 +1,5 @@
+{%- macro render() -%}
+# Search
+
+This run uses AutoResearch Search. One post-training codebase lives under the shared work area and every step improves it in place. The framework wrote the starting project — `prepare.py`, `train.py`, `eval.py`, `export.py`, `recipe.yaml` — once, before the first step. Each step is one fresh Worker: it reads the shared source, the earlier steps' records, and their Git history, makes one bounded change, runs it, exports one attempt under its own artifacts, and writes the README the next step inherits. Only one Worker is active at a time. The framework scores each finished step's exported attempt with the run's own score program after that session ends; a Worker's own `eval.py` number is development evidence and never the score. The best framework score wins, even when it belongs to an earlier step and even when the source tree has moved on. Git inside the shared source is yours: the framework runs no Git command and never reverts anything you committed.
+{%- endmacro %}
