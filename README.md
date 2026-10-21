@@ -60,15 +60,16 @@ detectable difference at this sample size*, not zero difference. Resolving a
   different function and the measurement is meaningless.
 
 
-## Three ways in
+## Four ways in
 
-Pick the one you want; they are independent.
+A, B and C are independent; D measures what B or C produced.
 
 | | needs | gives you |
 |---|---|---|
 | **A** verify the published number | the head weights, no training | the 2.0089x reproduced, or a number to compare |
 | **B** train your own head | a GPU and hours | a head of your own from this recipe |
 | **C** re-run the end-to-end search | a GPU, and either an AIBuildAI login or the source-build skip flag; 5--6 h per step (17 h to verify, 36 h for all ten) | the agent builds a head from the task contract |
+| **D** evaluate the head C produced | a head from B or C | your head on the same protocol as the published one |
 
 ## Quickstart A — verify the published number
 
@@ -302,6 +303,41 @@ and two things that will otherwise surprise you:
   (52.30--52.43 tok/s across all ten scored steps) and roughly the end point.
 
 
+## Quickstart D — evaluate the head your own search produced
+
+Quickstart A measures the *published* head. A search (C) or a local training run
+(B) leaves a different one, in a different layout: `head.pt` and
+`head_config.json` side by side, where `run_eval.sh` expects `<name>.pt` and
+`<name>.config.json`. One command bridges that:
+
+```bash
+conda activate sglang-baseline
+export HF_HOME="$HOME/hf-cache" TMPDIR=/var/tmp
+
+# the search writes its delivered head here
+D=$(ls -d ~/aibuildai-playground/*/*/ | tail -1)
+ls "$D"/workspace/search_1/worker_*/state/artifacts/full/   # head.pt head_config.json
+
+./tools/eval_search_head.sh "$D"/workspace/search_1/worker_7/state/artifacts/full mtbench
+```
+
+It stages the pair under the names the harness wants and runs the same MT-Bench
+protocol as Quickstart A. Pass `quality` instead of `mtbench` for GSM8K +
+HumanEval.
+
+Two things to know before reading the result:
+
+* **The tree travels with the head.** `make_draft.py` does not copy
+  `sglang_overrides` into the draft directory, and the benchmark reads them from
+  `_overrides.json` *inside* that directory. `run_eval.sh` now writes that file
+  from your `head_config.json`, so a head tuned for, say, 4/24/64 is no longer
+  measured at the task default 3/24/64 and under-reported. If your head's config
+  names no overrides, the defaults apply and that is correct.
+* **`eval/REFERENCE.md` describes the published head, not yours.**
+  `summarise.py` will compare against it and print a mismatch; that is a
+  different head, not a failed reproduction. What matters is the plain and draft
+  tok/s pair measured in your own session, and their ratio.
+
 ### The SGLang patch
 
 `tools/patch_sglang.sh` edits `sglang/srt/models/qwen2_eagle.py` in your
@@ -341,7 +377,7 @@ eval/        literature-protocol evaluation
   REFERENCE.md     our numbers, to diff yours against
 docs/        the method knowledge, as standalone notes
   recipe.md measurement.md exactness.md methods.md performance-model.md
-tools/       patch_sglang.sh
+tools/       patch_sglang.sh, eval_search_head.sh
 heads/       how to obtain the weights
 search/      re-run the autonomous search that found the head
   task/            the task folder the framework reads as data_root

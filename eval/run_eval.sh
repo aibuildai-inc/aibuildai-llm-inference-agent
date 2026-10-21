@@ -140,6 +140,23 @@ echo "=== packaging draft ==="
       --out "$DRAFT" >/dev/null
 echo "  $DRAFT ($(du -sh "$DRAFT" | cut -f1))"
 
+# Carry the head's OWN tree into the draft dir. make_draft.py does not copy
+# sglang_overrides, and bench_*.py reads them from _overrides.json inside the
+# draft dir -- so a head tuned for a different tree is otherwise measured with
+# the task defaults and under-reports itself. Harmless for the published head,
+# which was tuned at the defaults.
+if [ -f "${HEAD%.pt}.config.json" ]; then
+  "$PY" - "${HEAD%.pt}.config.json" "$DRAFT/_overrides.json" <<'PYOV'
+import json, sys
+ov = json.load(open(sys.argv[1])).get("sglang_overrides") or {}
+keys = ("speculative_num_steps", "speculative_eagle_topk", "speculative_num_draft_tokens")
+mine = {k: int(ov[k]) for k in keys if k in ov}
+if mine:
+    json.dump(mine, open(sys.argv[2], "w"))
+    print("  tree from head_config:", "/".join(str(mine[k]) for k in keys if k in mine))
+PYOV
+fi
+
 mtb() {  # $1=label $2=temp $3=extra args
   echo "=== $1  $(date +%H:%M:%S) ==="
   "$PY" "$HERE/bench_mtbench.py" --models "$TASK/models.json" --harness "$TASK/harness" \
