@@ -90,10 +90,22 @@ bash /tmp/miniforge.sh -b -p ~/miniforge3
 # 2. the serving environment: torch + SGLang + flashinfer for YOUR CUDA, plus a
 #    host compiler for flashinfer's JIT. The harness reads CXX/CC from this
 #    interpreter's own bin/, so install the compiler INTO this env.
+nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
+#    the CUDA build below must match that driver; cu130 needs driver >= 580
 conda create -y -n sglang-baseline python=3.12
 conda activate sglang-baseline
-#    ... install torch/sglang/flashinfer per their own instructions ...
+pip install torch==2.13.0 torchvision==0.28.0 torchaudio==2.11.0 \
+  --index-url https://download.pytorch.org/whl/cu130
+pip install sglang==0.5.21 flashinfer-python==0.6.18 transformers==5.12.1 \
+  accelerate==1.15.0 numpy safetensors pyyaml huggingface-hub
 conda install -y -c conda-forge gxx_linux-64=12.4 gcc_linux-64=12.4
+
+# CHECK the stack before going further
+python -c "import torch, sglang, flashinfer, transformers; \
+print(torch.__version__, sglang.__version__, flashinfer.__version__, transformers.__version__)"
+python -c "import torch; print('cuda', torch.version.cuda, torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+x86_64-conda-linux-gnu-g++ --version | head -1
+echo 'int main(){return 0;}' > /tmp/t.cu && nvcc /tmp/t.cu -o /tmp/tcu && echo "nvcc+host OK"
 
 # 3. patch SGLang -- NOT optional, and it must be the SGLang you just installed
 ./tools/patch_sglang.sh
@@ -110,7 +122,8 @@ export HF_HOME="$HOME/hf-cache"          # needs ~28 GB for the target
 export TMPDIR=/var/tmp                   # if /tmp is small
 PYTHON="$(which python)" ./eval/run_eval.sh --check
 
-# 6. run it
+# 6. run it -- 70 min+, so do it inside tmux (an ssh drop otherwise kills it)
+tmux new -s eval
 PYTHON="$(which python)" ./eval/run_eval.sh --phase mtbench   # ~70 min, the headline number
 PYTHON="$(which python)" ./eval/run_eval.sh --phase quality   # ~90 min, GSM8K + HumanEval
 PYTHON="$(which python)" ./eval/run_eval.sh                   # all phases, ~4 h
@@ -252,7 +265,12 @@ function (relative error 1.84 against the reference implementation, versus
 numbers, is idempotent, and refuses to apply twice.
 
 `eval/run_eval.sh --check` verifies the patch is present and will not run
-without it.
+without it. The script keeps the original beside the patched file, so to revert:
+
+```bash
+F=$CONDA_PREFIX/lib/python3.12/site-packages/sglang/srt/models/qwen2_eagle.py
+cp "$F.orig" "$F"
+```
 
 ## Layout
 
