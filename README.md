@@ -50,6 +50,9 @@ detectable difference at this sample size*, not zero difference. Resolving a
   serving environment; the harness finds the prefixed compiler and points nvcc
   at it, so no symlinks are needed. Without a host compiler the first arm fails
   with `nvcc fatal : Failed to preprocess host compiler properties`
+- `conda` (miniforge is fine). A bare GPU image usually has neither conda nor
+  a Python the framework accepts (`>=3.11,<3.14`); Quickstart A step 1 installs
+  it in three commands
 - The exact versions in `requirements-frozen.txt`. The ones that matter:
   `torch 2.13.0+cu130`, `transformers 5.12.1`, `sglang 0.5.21`,
   `flashinfer 0.6.18`, `accelerate 1.15.0`
@@ -75,7 +78,16 @@ These are the commands as run on a second machine, in this order.
 git clone https://github.com/importZL/AIBuildAI-SpecDec.git
 cd AIBuildAI-SpecDec
 
-# 1. the serving environment: torch + SGLang + flashinfer for YOUR CUDA, plus a
+# 1. conda, if the machine has none. Everything below lives in conda
+#    environments; a bare GPU image usually ships neither conda nor a
+#    Python new enough for the framework (Ubuntu 22.04 ships 3.10).
+curl -L -o /tmp/miniforge.sh \
+  https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
+bash /tmp/miniforge.sh -b -p ~/miniforge3
+~/miniforge3/bin/conda init bash && exec bash
+#    `exec bash` replaces the shell, so paste the rest AFTER it returns
+
+# 2. the serving environment: torch + SGLang + flashinfer for YOUR CUDA, plus a
 #    host compiler for flashinfer's JIT. The harness reads CXX/CC from this
 #    interpreter's own bin/, so install the compiler INTO this env.
 conda create -y -n sglang-baseline python=3.12
@@ -83,22 +95,22 @@ conda activate sglang-baseline
 #    ... install torch/sglang/flashinfer per their own instructions ...
 conda install -y -c conda-forge gxx_linux-64=12.4 gcc_linux-64=12.4
 
-# 2. patch SGLang -- NOT optional, and it must be the SGLang you just installed
+# 3. patch SGLang -- NOT optional, and it must be the SGLang you just installed
 ./tools/patch_sglang.sh
 ./tools/patch_sglang.sh                  # idempotent: must say "already patched"
 
-# 3. fetch the head weights (public release, no token needed)
+# 4. fetch the head weights (public release, no token needed)
 curl -L -o heads/draft_head.pt \
   https://github.com/importZL/AIBuildAI-SpecDec/releases/download/v1.0.0/draft_head.pt
 sha256sum heads/draft_head.pt
 # expect 7a744703b50f49f9d5cb6ad04256e6a5ee81746b70d4426e3bd900980e371343
 
-# 4. check prerequisites only (~2 min)
+# 5. check prerequisites only (~2 min)
 export HF_HOME="$HOME/hf-cache"          # needs ~28 GB for the target
 export TMPDIR=/var/tmp                   # if /tmp is small
 PYTHON="$(which python)" ./eval/run_eval.sh --check
 
-# 5. run it
+# 6. run it
 PYTHON="$(which python)" ./eval/run_eval.sh --phase mtbench   # ~70 min, the headline number
 PYTHON="$(which python)" ./eval/run_eval.sh --phase quality   # ~90 min, GSM8K + HumanEval
 PYTHON="$(which python)" ./eval/run_eval.sh                   # all phases, ~4 h
@@ -162,6 +174,8 @@ and no weights to start; it builds one from the task contract.
     export AIBUILDAI_SKIP_SUBSCRIPTION_CHECK=1      # or: aibuildai login
 
     # 1. install the framework (the order matters -- packages/ first).
+    #    Assumes conda exists; if not, install miniforge first (Quickstart A
+    #    step 1) -- `conda install` below needs it.
     #    The framework builds PostgreSQL 18.6 from source on first run and cannot
     #    use a system one, so this environment needs a build toolchain too.
     conda install -y -c conda-forge bison flex make gxx_linux-64=12.4 gcc_linux-64=12.4
