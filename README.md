@@ -105,7 +105,13 @@ python -c "import torch, sglang, flashinfer, transformers; \
 print(torch.__version__, sglang.__version__, flashinfer.__version__, transformers.__version__)"
 python -c "import torch; print('cuda', torch.version.cuda, torch.cuda.is_available(), torch.cuda.get_device_name(0))"
 x86_64-conda-linux-gnu-g++ --version | head -1
-echo 'int main(){return 0;}' > /tmp/t.cu && nvcc /tmp/t.cu -o /tmp/tcu && echo "nvcc+host OK"
+#    nvcc must be told WHICH host compiler: it looks for a plain `g++` on PATH,
+#    conda-forge ships only the prefixed name, and a GPU image often has no
+#    system g++ -- that combination fails with `cannot execute 'cc1plus'`.
+#    The harness passes -ccbin for every real run; pass it here too.
+echo 'int main(){return 0;}' > /tmp/t.cu
+nvcc -ccbin "$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-g++" /tmp/t.cu -o /tmp/tcu \
+  && echo "nvcc+host OK"
 
 # 3. patch SGLang -- NOT optional, and it must be the SGLang you just installed
 ./tools/patch_sglang.sh
