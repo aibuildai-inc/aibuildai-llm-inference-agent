@@ -201,8 +201,18 @@ across search steps rather than built in one pass.
 This is the agent that *found* the head, not the head. It needs no trained head
 and no weights to start; it builds one from the task contract.
 
-    # 0. `aibuildai run` is gated: it fetches a signed lease and fails closed.
-    #    From source you can skip that verdict; a frozen binary cannot.
+    # 0. TWO separate authorisations, and the skip flag covers only ONE of them.
+    #
+    #    a) MODEL access, from Claude Code itself. Without it every agent request
+    #       ends `api_error ... Not logged in` with 0 input and 0 output tokens,
+    #       and the run spins in a retry loop that looks alive for hours: the
+    #       process is up, launcher scripts pile up, no artefact is ever written.
+    #       There is no skip flag for this.
+    claude                                          # log in, then /exit
+    ls -l ~/.aibuildai/claude_token                 # must exist and be non-empty
+    #
+    #    b) the RUN GATE: `aibuildai run` fetches a signed lease and fails closed.
+    #       From source you can skip that verdict; a frozen binary cannot.
     export AIBUILDAI_SKIP_SUBSCRIPTION_CHECK=1      # or: aibuildai login
 
     # 1. install the framework (the order matters -- packages/ first).
@@ -250,6 +260,15 @@ and no weights to start; it builds one from the task contract.
 
     ./search/launch.sh [playground-dir]      # default ~/aibuildai-playground
     #    detach with Ctrl-b d, come back with `tmux attach -t search`
+
+    # 4b. CHECK IT IS ACTUALLY WORKING -- do this in the first five minutes.
+    #     An auth loop costs nothing and produces nothing, so it can run all
+    #     night looking healthy. A working run writes tokens and artefacts.
+    P=$(ls -d ~/aibuildai-playground/*/*/ | tail -1)
+    grep -c api_error "$P"/workspace/search_1/*/runs/run_1/execution.md   # want 0
+    tail -3 "$P"/workspace/search_1/*/runs/run_1/execution.md             # want Input/Output > 0
+    #     If you see `Not logged in` or `Input: 0 · Output: 0`, stop the run,
+    #     do step 0a, and relaunch. It will not recover on its own.
 
     # 5. the workspace UI. launch.sh prints
     #      AIBuildAI Workspace: http://127.0.0.1:<port>/run/<id>
