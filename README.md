@@ -124,10 +124,22 @@ PYTHON="$(which python)" ./eval/run_eval.sh --check
 
 # 6. run it -- 70 min+, so do it inside tmux (an ssh drop otherwise kills it)
 tmux new -s eval
+
+#    INSIDE tmux you get a fresh shell: the env and the exports above are NOT
+#    inherited. Set them up again before running anything.
+conda activate sglang-baseline
+cd ~/AIBuildAI-SpecDec
+export HF_HOME="$HOME/hf-cache"
+export TMPDIR=/var/tmp
+
 PYTHON="$(which python)" ./eval/run_eval.sh --phase mtbench   # ~70 min, the headline number
 PYTHON="$(which python)" ./eval/run_eval.sh --phase quality   # ~90 min, GSM8K + HumanEval
 PYTHON="$(which python)" ./eval/run_eval.sh                   # all phases, ~4 h
 ```
+
+Detach with `Ctrl-b d`, come back with `tmux attach -t eval`. If you skip the
+re-activation, `which python` resolves to the system interpreter and the run
+fails on the first import.
 
 `--check` should print the versions, `sglang patch: OK`, `draft module :
 imports`, `registry : Qwen2ForCausalLMEagle registered`, a GPU with >= 60 GB
