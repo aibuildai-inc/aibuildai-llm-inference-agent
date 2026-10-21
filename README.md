@@ -206,13 +206,19 @@ and no weights to start; it builds one from the task contract.
 
     # 1. install the framework (the order matters -- packages/ first).
     #    Assumes conda exists; if not, install miniforge first (Quickstart A
-    #    step 1) -- `conda install` below needs it.
-    #    The framework builds PostgreSQL 18.6 from source on first run and cannot
-    #    use a system one, so this environment needs a build toolchain too.
+    #    step 1). Use conda, not venv: the framework needs Python >= 3.11,
+    #    Ubuntu 22.04 ships 3.10, and `python3 -m venv` fails without
+    #    python3-venv.
+    conda create -y -n aibuildai python=3.12
+    conda activate aibuildai
+
+    #    The toolchain goes INTO this env, not into base or sglang-baseline:
+    #    the framework builds PostgreSQL 18.6 from source on first run, cannot
+    #    use a system one, and looks for bison/flex/make/gcc in the active env.
+    #    Running this before `conda activate aibuildai` installs it in the
+    #    wrong place and the build fails.
     conda install -y -c conda-forge bison flex make gxx_linux-64=12.4 gcc_linux-64=12.4
-    #    Use conda, not venv: the framework needs Python >= 3.11, Ubuntu 22.04
-    #    ships 3.10, and its `python3 -m venv` also fails without python3-venv.
-    conda create -y -n aibuildai python=3.12 && conda activate aibuildai
+
     export AIBUILDAI_CLIPROXYAPI_SOURCE_COMMIT=21c3972447b7b51b0c86bb53f4e2552bac2526a4
     cd framework
     pip install -c requirements.lock -e ./packages/execution
@@ -230,9 +236,19 @@ and no weights to start; it builds one from the task contract.
     conda activate sglang-baseline && ./tools/patch_sglang.sh
     conda activate aibuildai
 
-    # 4. launch (10 steps, 48 h budget; the published run used 36 h)
+    # 4. launch (10 steps, 48 h budget; the published run used 36 h).
+    #    launch.sh ends in `exec aibuildai run`, i.e. a FOREGROUND process, so
+    #    run it inside tmux or an ssh drop kills the search.
+    tmux new -s search
+    #    inside tmux the shell is fresh -- nothing above is inherited:
+    conda activate aibuildai
+    cd ~/AIBuildAI-SpecDec
+    export AIBUILDAI_CLIPROXYAPI_SOURCE_COMMIT=21c3972447b7b51b0c86bb53f4e2552bac2526a4
+    export AIBUILDAI_SKIP_SUBSCRIPTION_CHECK=1       # if you used the skip flag
     export HF_HOME="$HOME/hf-cache" TMPDIR=/var/tmp
+
     ./search/launch.sh [playground-dir]      # default ~/aibuildai-playground
+    #    detach with Ctrl-b d, come back with `tmux attach -t search`
 
     # 5. watch it
     ./search/watch_run.sh ~/aibuildai-playground
