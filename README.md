@@ -250,6 +250,13 @@ and no weights to start; it builds one from the task contract.
     ./search/launch.sh [playground-dir]      # default ~/aibuildai-playground
     #    detach with Ctrl-b d, come back with `tmux attach -t search`
 
+    # 5. the workspace UI. launch.sh prints
+    #      AIBuildAI Workspace: http://127.0.0.1:<port>/run/<id>
+    #    That loopback address is the REMOTE machine's. To open it on your
+    #    laptop, forward the port first (the port changes every run):
+    #      ssh -N -L <port>:127.0.0.1:<port> user@host
+    #    then open the printed URL locally, unchanged.
+
     # 5. watch it
     ./search/watch_run.sh ~/aibuildai-playground
     for f in $(find ~/aibuildai-playground -name .program-result.json \
