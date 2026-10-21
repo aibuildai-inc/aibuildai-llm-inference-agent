@@ -252,10 +252,16 @@ and no weights to start; it builds one from the task contract.
 
     # 5. the workspace UI. launch.sh prints
     #      AIBuildAI Workspace: http://127.0.0.1:<port>/run/<id>
-    #    That loopback address is the REMOTE machine's. To open it on your
-    #    laptop, forward the port first (the port changes every run):
-    #      ssh -N -L <port>:127.0.0.1:<port> user@host
-    #    then open the printed URL locally, unchanged.
+    #    TWO things make that link fail if you just paste it elsewhere:
+    #      a) 127.0.0.1 is the REMOTE machine's loopback, so forward the port
+    #         (it changes every run). Any of these works:
+    #           ssh -N -L <port>:127.0.0.1:<port> user@host
+    #           gcloud compute ssh <instance> --zone <z> -- -L <port>:127.0.0.1:<port>
+    #           VS Code Remote-SSH -> PORTS -> Forward a Port -> <port>
+    #      b) /run/<id> is a client-side route and the server 404s it.
+    #         Open the ROOT, http://127.0.0.1:<port>/ , and pick the run there.
+    #    Check it is up without a browser:
+    #      curl -s http://127.0.0.1:<port>/api/v1/runs
 
     # 5. watch it
     ./search/watch_run.sh ~/aibuildai-playground
