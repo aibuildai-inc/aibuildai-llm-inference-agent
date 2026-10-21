@@ -65,33 +65,60 @@ Pick the one you want; they are independent.
 |---|---|---|
 | **A** verify the published number | the head weights, no training | the 2.0089x reproduced, or a number to compare |
 | **B** train your own head | a GPU and hours | a head of your own from this recipe |
-| **C** re-run the end-to-end search | a GPU, 48 h, and either an AIBuildAI login or the source-build skip flag | the agent builds a head from the task contract |
+| **C** re-run the end-to-end search | a GPU, and either an AIBuildAI login or the source-build skip flag; 5--6 h per step (17 h to verify, 36 h for all ten) | the agent builds a head from the task contract |
 
 ## Quickstart A — verify the published number
+
+These are the commands as run on a second machine, in this order.
 
 ```bash
 git clone https://github.com/importZL/AIBuildAI-SpecDec.git
 cd AIBuildAI-SpecDec
 
-# 1. patch SGLang -- NOT optional
+# 1. the serving environment: torch + SGLang + flashinfer for YOUR CUDA, plus a
+#    host compiler for flashinfer's JIT. The harness reads CXX/CC from this
+#    interpreter's own bin/, so install the compiler INTO this env.
+conda create -y -n sglang-baseline python=3.12
+conda activate sglang-baseline
+#    ... install torch/sglang/flashinfer per their own instructions ...
+conda install -y -c conda-forge gxx_linux-64=12.4 gcc_linux-64=12.4
+
+# 2. patch SGLang -- NOT optional, and it must be the SGLang you just installed
 ./tools/patch_sglang.sh
+./tools/patch_sglang.sh                  # idempotent: must say "already patched"
 
-# 2. fetch the head weights from release v1.0.0 -> heads/draft_head.pt
-#    (see heads/README.md; needed only for eval/, not for search/ or train/)
+# 3. fetch the head weights (public release, no token needed)
+curl -L -o heads/draft_head.pt \
+  https://github.com/importZL/AIBuildAI-SpecDec/releases/download/v1.0.0/draft_head.pt
+sha256sum heads/draft_head.pt
+# expect 7a744703b50f49f9d5cb6ad04256e6a5ee81746b70d4426e3bd900980e371343
 
-# 3. check prerequisites only (~2 min)
+# 4. check prerequisites only (~2 min)
 export HF_HOME="$HOME/hf-cache"          # needs ~28 GB for the target
-export SPECDEC_HEAD="$PWD/heads/draft_head.pt"
-./eval/run_eval.sh --check
+export TMPDIR=/var/tmp                   # if /tmp is small
+PYTHON="$(which python)" ./eval/run_eval.sh --check
 
-# 4. run it
-./eval/run_eval.sh --phase mtbench   # ~70 min, the headline number
-./eval/run_eval.sh --phase quality   # ~90 min, GSM8K + HumanEval
-./eval/run_eval.sh                   # all phases, ~4 h
+# 5. run it
+PYTHON="$(which python)" ./eval/run_eval.sh --phase mtbench   # ~70 min, the headline number
+PYTHON="$(which python)" ./eval/run_eval.sh --phase quality   # ~90 min, GSM8K + HumanEval
+PYTHON="$(which python)" ./eval/run_eval.sh                   # all phases, ~4 h
+```
+
+`--check` should print the versions, `sglang patch: OK`, `draft module :
+imports`, `registry : Qwen2ForCausalLMEagle registered`, a GPU with >= 60 GB
+free, and all three data files found.
+
+`run_eval.sh` ends by running `summarise.py` itself; to re-print the comparison
+later without re-measuring:
+
+```bash
+python eval/summarise.py --results eval/results --reference eval/REFERENCE.md
 ```
 
 Compare your output with `eval/REFERENCE.md`. Anything within ~2% is a match --
-that is the instrument's resolution, not slack.
+that is the instrument's resolution, not slack. **A cold clone on a second
+machine measured 1.9943x against the published 2.0089x -- 0.73% apart, with tau
+identical to four decimals.**
 
 ## Quickstart B — train your own head
 
@@ -117,6 +144,10 @@ head but not the published one. To reproduce the published corpus:
     python corpus/gen_rc_aug2.py            # -> data/rc_aug2.pt
     python corpus/merge_corpus_v4.py        # -> data/train_v4.pt
 
+Both paths have been run from a clean clone: the four-command path trains on
+`train.pt` and `export.py` hands `make_draft.py` a head that packages into a
+16-tensor draft directory SGLang loads.
+
 `train/README.md` explains what each increment added and why. The chain exists
 because regenerating 6M tokens of teacher features costs hours; it was grown
 across search steps rather than built in one pass.
@@ -134,7 +165,9 @@ and no weights to start; it builds one from the task contract.
     #    The framework builds PostgreSQL 18.6 from source on first run and cannot
     #    use a system one, so this environment needs a build toolchain too.
     conda install -y -c conda-forge bison flex make gxx_linux-64=12.4 gcc_linux-64=12.4
-    python3 -m venv ~/aibuildai-venv && . ~/aibuildai-venv/bin/activate
+    #    Use conda, not venv: the framework needs Python >= 3.11, Ubuntu 22.04
+    #    ships 3.10, and its `python3 -m venv` also fails without python3-venv.
+    conda create -y -n aibuildai python=3.12 && conda activate aibuildai
     export AIBUILDAI_CLIPROXYAPI_SOURCE_COMMIT=21c3972447b7b51b0c86bb53f4e2552bac2526a4
     cd framework
     pip install -c requirements.lock -e ./packages/execution
@@ -146,11 +179,41 @@ and no weights to start; it builds one from the task contract.
     aibuildai -V                 # AIBuildAI science-2026-08-04+439.gd4c0692e7.dirty
                                  # 0.0.0+unknown here means _version.py did not survive the clone
 
-    # 3. patch SGLang -- NOT optional
-    ./tools/patch_sglang.sh
+    # 3. patch SGLang -- NOT optional, and patch the env the RUN will use:
+    #    run_config names `conda_env: sglang-baseline`, which must already exist
+    #    (Quickstart A step 1). launch.sh verifies it before starting.
+    conda activate sglang-baseline && ./tools/patch_sglang.sh
+    conda activate aibuildai
 
     # 4. launch (10 steps, 48 h budget; the published run used 36 h)
+    export HF_HOME="$HOME/hf-cache" TMPDIR=/var/tmp
     ./search/launch.sh [playground-dir]      # default ~/aibuildai-playground
+
+    # 5. watch it
+    ./search/watch_run.sh ~/aibuildai-playground
+    for f in $(find ~/aibuildai-playground -name .program-result.json \
+                    -path '*score_program*' | sort -V); do
+      python3 -c "import json;o=json.load(open('$f'))['output'];print(round(o['score'],4), o['components'])"
+    done
+    cat ~/aibuildai-playground/*/workspace/search_1/worker_*/state/artifacts/README.md
+
+A step is sound when `gate_passed` is 1.0 **and** its baseline sits in the
+52.2--52.5 tok/s band; a baseline outside that band means the instrument moved
+and the ratio is not comparable.
+
+**What a from-scratch run produced**, on one A100, starting from this repo:
+
+| step | what the agent changed | score | tau | baseline |
+|---|---|---|---|---|
+| 1 | built the pipeline; tree sweep, width, then on-policy data (1.41M tokens) | 1.8671 | 3.028 | 52.457 |
+| 2 | on-policy volume 1.41M -> 2.49M | 1.9612 | 3.194 | 52.434 |
+| 3 | on-policy volume 2.49M -> 3.71M | 2.0068 | 3.279 | 52.460 |
+
+About 5--6 hours per step. **Three steps is enough to verify the machinery** --
+it crosses 2.0x and the baselines agree to 0.05%; the remaining seven chase the
+end point. If the machine dies mid-run, the run does not resume: the scored
+steps and their written records survive on disk, the in-flight step does not.
+Read the records, then launch a fresh run rather than restarting the old one.
 
 **Read `search/README.md` before launching.** It covers what the repository
 cannot supply -- a Claude Code login (no API key needed), a conda environment
