@@ -201,6 +201,21 @@ across search steps rather than built in one pass.
 This is the agent that *found* the head, not the head. It needs no trained head
 and no weights to start; it builds one from the task contract.
 
+> **Log into Claude Code on the machine that will run the search, before you do
+> anything else.** The agents run there, not on your laptop, and they get their
+> model access from that machine's own login. A search launched without it does
+> not fail: it retries forever, with every request returning `api_error ... Not
+> logged in` at 0 tokens and 0 cost, while the process stays up and the GPU
+> stays idle. We lost three hours to this on a freshly imaged box.
+>
+> ```bash
+> claude                              # complete the login, then /exit
+> ls -l ~/.aibuildai/claude_token     # must exist and be non-empty
+> ```
+>
+> If the machine was just wiped or re-imaged, assume you are logged out even if
+> `~/.claude` exists -- a config skeleton is not a session.
+
     # 0. TWO separate authorisations, and the skip flag covers only ONE of them.
     #
     #    a) MODEL access, from Claude Code itself. Without it every agent request
