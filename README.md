@@ -209,6 +209,13 @@ and no weights to start; it builds one from the task contract.
 > stays idle. We lost three hours to this on a freshly imaged box.
 >
 > ```bash
+> # install Claude Code if the machine does not have it (a fresh GPU image
+> # will not). The installer puts the binary in ~/.local/bin:
+> curl -fsSL https://claude.ai/install.sh | bash
+> export PATH="$HOME/.local/bin:$PATH"     # add to ~/.bashrc to make it stick
+> claude --version                         # expect 2.x (Claude Code)
+> # npm alternative: npm install -g @anthropic-ai/claude-code
+>
 > claude                              # complete the login, then /exit
 > ls -l ~/.aibuildai/claude_token     # must exist and be non-empty
 > ```
@@ -223,6 +230,8 @@ and no weights to start; it builds one from the task contract.
     #       and the run spins in a retry loop that looks alive for hours: the
     #       process is up, launcher scripts pile up, no artefact is ever written.
     #       There is no skip flag for this.
+    #       Install it first if the machine has none (see the callout above):
+    #         curl -fsSL https://claude.ai/install.sh | bash
     claude                                          # log in, then /exit
     ls -l ~/.aibuildai/claude_token                 # must exist and be non-empty
     #
