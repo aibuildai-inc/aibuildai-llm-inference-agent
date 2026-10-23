@@ -58,9 +58,35 @@ def main() -> None:
         check_reference(a.reference)
     R = Path(a.results)
 
+    # Results are named by arm, not by head, so a second head written into the
+    # same directory silently mixes its speed numbers with another head's
+    # quality numbers -- observed once, and invisible in the output. run_eval.sh
+    # stamps the head's sha256 beside the results; refuse to summarise across a
+    # change of head, and say which files are stale.
+    stamp = R / ".head"
+    if stamp.is_file():
+        head_sha = stamp.read_text().split()[0]
+        mixed = []
+        for f in sorted(R.glob("*.json")):
+            own = R / (f.stem + ".head")
+            if own.is_file() and own.read_text().split()[0] != head_sha:
+                mixed.append(f.name)
+        if mixed:
+            print("REFUSING to summarise: these results are from a different head:")
+            for m in mixed:
+                print("   ", m)
+            print("Re-run them, or point --results at a directory of one head's results.")
+            raise SystemExit(2)
+
     def load(n):
         p = R / f"{n}.json"
-        return json.loads(p.read_text()) if p.is_file() else None
+        if not p.is_file():
+            return None
+        own = R / f"{n}.head"
+        if stamp.is_file() and own.is_file() and own.read_text().split()[0] != stamp.read_text().split()[0]:
+            print(f"  (skipping {n}: produced by a different head)")
+            return None
+        return json.loads(p.read_text())
 
     def verdict(got, ref):
         d = 100 * (got - ref) / ref

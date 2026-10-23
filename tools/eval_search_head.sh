@@ -48,4 +48,12 @@ echo "NOTE: eval/REFERENCE.md describes the PUBLISHED head. summarise.py will"
 echo "      compare yours against it and report a mismatch -- that is a different"
 echo "      head, not a failure. Read the plain/draft tok/s pair from your own run."
 echo
-PYTHON="${PYTHON:-$(which python)}" "$HERE/eval/run_eval.sh" --head "$STAGE/mine.pt" --phase "$PHASE"
+# Its own results directory: eval/results/ holds the PUBLISHED head's numbers,
+# and the files are named by arm, so writing here would overwrite them and let a
+# later summary mix two heads' results without saying so.
+RESULTS="${SPECDEC_RESULTS:-$STAGE/results}"
+mkdir -p "$RESULTS"
+echo "results dir: $RESULTS   (eval/results/ is left alone)"
+echo
+PYTHON="${PYTHON:-$(which python)}" "$HERE/eval/run_eval.sh" --head "$STAGE/mine.pt" \
+    --phase "$PHASE" --results "$RESULTS"

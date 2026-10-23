@@ -21,12 +21,13 @@ REL="$(cd "$HERE/.." && pwd)"
 TASK="${SPECDEC_TASK:-$REL/task}"
 HEAD="${SPECDEC_HEAD:-$REL/heads/draft_head.pt}"
 PY="${PYTHON:-$(command -v python3)}"
-OUT="$HERE/results"
+OUT="${SPECDEC_RESULTS:-$HERE/results}"
 PHASE="all"; CHECK=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --check) CHECK=1; shift ;;
+    --results) OUT="$2"; shift 2 ;;
     --phase) PHASE="$2"; shift 2 ;;
     --head)  HEAD="$2"; shift 2 ;;
     --task)  TASK="$2"; shift 2 ;;
@@ -139,6 +140,13 @@ echo "=== packaging draft ==="
 "$PY" "$TASK/harness/make_draft.py" --submission "$SUB" --models "$TASK/models.json" \
       --out "$DRAFT" >/dev/null
 echo "  $DRAFT ($(du -sh "$DRAFT" | cut -f1))"
+mkdir -p "$OUT"
+"$PY" - "$HEAD" "$OUT/.head" <<'PYST'
+import hashlib, sys, pathlib
+h = hashlib.sha256(pathlib.Path(sys.argv[1]).read_bytes()).hexdigest()
+pathlib.Path(sys.argv[2]).write_text(h + "  " + sys.argv[1] + "\n")
+print("  head sha256:", h[:16])
+PYST
 
 # Carry the head's OWN tree into the draft dir. make_draft.py does not copy
 # sglang_overrides, and bench_*.py reads them from _overrides.json inside the
@@ -162,12 +170,14 @@ mtb() {  # $1=label $2=temp $3=extra args
   "$PY" "$HERE/bench_mtbench.py" --models "$TASK/models.json" --harness "$TASK/harness" \
       --questions "$HERE/mt_bench_question.jsonl" --temperature "$2" \
       --max-new-tokens 1024 --repeats 1 $3 --out "$OUT/$1.json" 2>&1 | tail -6
+  [ -f "$OUT/$1.json" ] && cp -f "$OUT/.head" "$OUT/$1.head" 2>/dev/null
   echo "--- $1 done $(date +%H:%M:%S) ---"
 }
 qual() {  # $1=label $2=bench $3=extra args
   echo "=== $1  $(date +%H:%M:%S) ==="
   "$PY" "$HERE/bench_quality.py" --bench "$2" --models "$TASK/models.json" \
       --harness "$TASK/harness" --max-new-tokens 512 $3 --out "$OUT/$1.json" 2>&1 | tail -6
+  [ -f "$OUT/$1.json" ] && cp -f "$OUT/.head" "$OUT/$1.head" 2>/dev/null
   echo "--- $1 done $(date +%H:%M:%S) ---"
 }
 
@@ -193,4 +203,4 @@ esac
 
 echo
 echo "=== SUMMARY  $(date +%H:%M:%S) ==="
-"$PY" "$HERE/summarise.py" --results "$OUT" --reference "$HERE/REFERENCE.md"
+"$PY" "$HERE/summarise.py" --results "$OUT" --reference "$HERE/REFERENCE.md" || true

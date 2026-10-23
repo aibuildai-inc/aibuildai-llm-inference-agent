@@ -365,8 +365,15 @@ ls "$D"/workspace/search_1/worker_*/state/artifacts/full/   # head.pt head_confi
 ```
 
 It stages the pair under the names the harness wants and runs the same MT-Bench
-protocol as Quickstart A. Pass `quality` instead of `mtbench` for GSM8K +
-HumanEval.
+protocol as Quickstart A, writing into **its own results directory**
+(`~/specdec-eval-head/results` by default, override with `SPECDEC_RESULTS`).
+Pass `quality` instead of `mtbench` for GSM8K + HumanEval.
+
+That separation matters: result files are named by arm, not by head, so a second
+head written into `eval/results/` would overwrite the published head's numbers
+and a later `summarise.py` would mix one head's speed with another's quality --
+which is invisible in the output. `run_eval.sh` now stamps each result with the
+head's sha256 and `summarise.py` refuses to summarise across a change of head.
 
 Two things to know before reading the result:
 
