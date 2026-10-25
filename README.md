@@ -1,7 +1,11 @@
 # AIBuildAI-SpecDec
 
-A transferable recipe for training speculative-decoding draft heads, with the
-harness that measures them and the evidence for each design choice.
+An LLM inference engine is not one artefact but a stack: kernels, memory
+management, scheduling, and -- the only layer that has to be *learned* for each
+model -- a speculator. This repository is that layer, built end to end for one
+target: a transferable recipe for training speculative-decoding draft heads, the
+harness that measures them, the evidence for each design choice, and the agent
+that found the recipe in the first place.
 
 The reference result below is for one target model; the recipe itself is not
 specific to it (see **Scope**). Model and method names appear in the results and
@@ -199,7 +203,9 @@ across search steps rather than built in one pass.
 ## Quickstart C — re-run the end-to-end search
 
 This is the agent that *found* the head, not the head. It needs no trained head
-and no weights to start; it builds one from the task contract.
+and no weights to start; it builds one from the task contract -- the part of the
+work that is normally a human's, done by the agent rather than reproduced from
+`RECIPE.md`.
 
 > **Log into Claude Code on the machine that will run the search, before you do
 > anything else.** The agents run there, not on your laptop, and they get their
@@ -451,6 +457,11 @@ Quickstarts A and B need no agent framework at all -- `RECIPE.md` and
 usable without ever running an agent. Only C needs `framework/`.
 
 ## Scope
+
+This is one layer of the inference stack. Nothing here builds or modifies a
+serving framework: the artefact is a speculator that an existing framework
+loads, and it is measured against that framework's own unspeculated throughput,
+so the number reported is the head's contribution and not the framework's.
 
 Measured on one target, one GPU model, one SGLang version. The recipe has been
 applied to a second, much larger target (a 123B dense model at tensor-parallel
