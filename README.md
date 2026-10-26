@@ -46,9 +46,8 @@ modifying.
 
 ## Current Results
 
-The reference result below is for one target model; the recipe itself is not
-specific to it (see **Scope**). Model and method names appear in the results and
-the recipe where they carry meaning, not in the project's structure.
+The result below is for one target model; the recipe is not specific to it
+(see **Scope**).
 
 <p align="center">
   <picture>
