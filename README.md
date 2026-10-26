@@ -53,7 +53,7 @@ the recipe where they carry meaning, not in the project's structure.
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/throughput-dark.svg">
-    <img src="assets/throughput-light.svg" width="100%" alt="Decoding throughput on MT-Bench at temperature 0, batch 1, one A100-80GB: HF generate() eager 16.8 tok/s, vLLM 52.1, stock SGLang 52.2, and the heads this agent built at 87.6, 100.1 and 104.9 tok/s across three runs.">
+    <img src="assets/throughput-light.svg" width="100%" alt="Decoding throughput on MT-Bench, batch 1, one A100-80GB: HF generate() eager 16.8 tok/s, vLLM 52.1, stock SGLang 52.2, and the heads this agent built at 87.6, 100.1 and 104.9 tok/s across three runs.">
   </picture>
 </p>
 
@@ -65,26 +65,6 @@ differs from the target's; that number comes from the report.
 Accuracy did not change: of 664 GSM8K and HumanEval problems answered both with
 the head and without it, 7 changed in each direction, which is what chance alone
 looks like.
-
-<details>
-<summary>The same numbers as text</summary>
-
-```
-target: Qwen/Qwen2.5-14B-Instruct      host: 1x A100-SXM4-80GB
-MT-Bench, T=0, 80 questions x 2 turns, 1024 new tokens, batch 1
-
-  HF generate(), eager          16.783 tok/s     0.321x
-  stock vLLM, no speculation     52.059 tok/s     0.997x
-  stock SGLang, no speculation   52.214 tok/s     1.000x
-  SGLang + run1 head             87.608 tok/s     1.664x
-  SGLang + run2 head            100.057 tok/s     1.900x
-  SGLang + this head            104.892 tok/s     2.0089x     tau 3.2061
-
-  quality (paired, GSM8K 500 + HumanEval 164):
-    7 : 7 discordant, McNemar exact p = 1.000
-```
-
-</details>
 
 Full numbers and their caveats: **[RESULTS.md](RESULTS.md)**.
 How the head was built: **[RECIPE.md](RECIPE.md)**.
