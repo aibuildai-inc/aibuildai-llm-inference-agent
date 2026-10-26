@@ -12,37 +12,37 @@
 
 ---
 
+Large language models (LLMs) are now widely deployed in chat assistants, coding
+tools and autonomous agents, where generation speed directly determines
+responsiveness and user experience. Speculative decoding accelerates generation
+by using a lightweight draft model to quickly propose several tokens, which the
+target LLM then verifies in a single forward pass. Its speedup therefore depends
+on how closely the draft model approximates the target LLM, and **building such a
+draft model for each LLM requires substantial expertise and manual effort**.
 
-Speculative decoding accelerates generation by using a lightweight draft model
-to quickly propose several tokens, which the target LLM then verifies in a single
-forward pass. Its speedup therefore depends on how closely the draft model
-approximates the target LLM, and building such a draft model for each LLM
-requires substantial expertise and manual effort.
+To address this, we present the **AIBuildAI Inference Agent**, a **recursive
+self-improving agent that automatically builds high-speed LLM inference
+engines** by training high-performing EAGLE draft heads, lightweight draft models
+built on the target LLM's internal features. In each iteration, the agent
+proposes a draft-head design, **spanning architecture, training data, training
+procedure and draft-tree configuration**, and trains the head. Its speedup is
+then measured by **a separate scoring program that the agent cannot access, which
+prevents reward hacking**. The proposed design and its results are then passed to
+the next iteration, where the agent further improves on them. In addition, the
+AIBuildAI Inference Agent contains **a knowledge base of past experimental
+findings** that reduces the expertise and computation this search requires; **the
+knowledge base is updated after every run, so the agent improves over time**.
 
-To address this, the AIBuildAI Inference Agent is a recursive self-improving
-agent that automatically builds high-speed LLM inference engines by training
-high-performing EAGLE draft heads, lightweight draft models built on the target
-LLM's internal features. In each iteration, the agent proposes a draft-head
-design, spanning architecture, training data, training procedure and draft-tree
-configuration, and trains the head. Its speedup is then measured by a separate
-scoring program that the agent cannot access, which prevents reward hacking. The
-proposed design and its results are then passed to the next iteration, where the
-agent further improves on them. In addition, the agent contains a knowledge base
-of past experimental findings that reduces the expertise and computation this
-search requires; the knowledge base is updated after every run, so the agent
-improves over time.
+Experiments show that the agent's automatically built draft head makes
+generation **2.0x faster than both SGLang and vLLM** and **6.2x faster than a
+HuggingFace generation loop, with unchanged accuracy**. Specifically, the results
+are measured on Qwen2.5-14B-Instruct served one request at a time on one NVIDIA
+A100 GPU, **after the agent ran for 36 hours with no human involvement**. The
+resulting engine reaches **104.9 tokens per second** on MT-Bench, against 52.2
+for SGLang and 52.1 for vLLM, with identical accuracy on GSM8K and HumanEval.
 
-This repository is one such build, end to end for one target: the recipe the
-agent converged on, the harness that measures a head, the evidence for each
-design choice, and the agent itself.
-
-Two things make it more than a coding agent. A **score contract**: the agent
-never grades itself, because a separate scoring program with its own GPUs
-re-times the plain and the speculative arm after the agent's session has closed,
-and the run's value is that program's number. And a **written record**: each step
-leaves one, the next step reads it, and between runs those records are folded
-into the guides a later run starts from -- which is what makes the line improve
-rather than restart.
+This repository is its source code, for running from source, reading, and
+modifying.
 
 ## Current Results
 
