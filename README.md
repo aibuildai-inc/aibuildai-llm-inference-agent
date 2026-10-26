@@ -3,20 +3,27 @@
 *A recursive self-improving agent that automatically builds high-speed LLM
 inference engines.*
 
-An LLM inference engine is not one artefact but a stack: kernels, memory
-management, scheduling, and -- the only layer that has to be *learned* for each
-model -- a speculator. This repository is that layer, built end to end for one
-target: a transferable recipe for training speculative-decoding draft heads, the
-harness that measures them, the evidence for each design choice, and the agent
-that found the recipe in the first place.
+Speculative decoding accelerates generation by using a lightweight draft model
+to quickly propose several tokens, which the target LLM then verifies in a single
+forward pass. Its speedup therefore depends on how closely the draft model
+approximates the target LLM, and building such a draft model for each LLM
+requires substantial expertise and manual effort.
 
-The agent works in iterations. Each one proposes a draft-head design -- head
-architecture, training data, training procedure, draft-tree configuration --
-trains it, and then has it timed by a separate scoring program the agent cannot
-reach, so no agent grades its own work. The design and its measured speedup pass
-to the next iteration. Findings also accumulate in written guides between runs,
-which is why three successive runs on this task reached 1.664x, 1.900x and
-2.0089x.
+The AIBuildAI Inference Agent does that building on its own. In each iteration
+the agent proposes a draft-head design -- spanning architecture, training data,
+training procedure and draft-tree configuration -- and trains the head: an EAGLE
+draft head, a lightweight draft model built on the target LLM's internal
+features. Its speedup is then measured by a separate scoring program that the
+agent cannot access, which prevents reward hacking. The proposed design and its
+results are then passed to the next iteration, where the agent further improves
+on them. The agent also carries a knowledge base of past experimental findings
+that reduces the expertise and computation this search requires; the knowledge
+base is updated after every run, so the agent improves over time -- three
+successive runs on this task reached 1.664x, 1.900x and 2.0089x.
+
+This repository is one such build, end to end for one target: the recipe the
+agent converged on, the harness that measures a head, the evidence for each
+design choice, and the agent itself.
 
 The reference result below is for one target model; the recipe itself is not
 specific to it (see **Scope**). Model and method names appear in the results and
