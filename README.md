@@ -9,17 +9,18 @@ forward pass. Its speedup therefore depends on how closely the draft model
 approximates the target LLM, and building such a draft model for each LLM
 requires substantial expertise and manual effort.
 
-The AIBuildAI Inference Agent does that building on its own. In each iteration
-the agent proposes a draft-head design -- spanning architecture, training data,
-training procedure and draft-tree configuration -- and trains the head: an EAGLE
-draft head, a lightweight draft model built on the target LLM's internal
-features. Its speedup is then measured by a separate scoring program that the
-agent cannot access, which prevents reward hacking. The proposed design and its
-results are then passed to the next iteration, where the agent further improves
-on them. The agent also carries a knowledge base of past experimental findings
-that reduces the expertise and computation this search requires; the knowledge
-base is updated after every run, so the agent improves over time -- three
-successive runs on this task reached 1.664x, 1.900x and 2.0089x.
+To address this, the AIBuildAI Inference Agent is a recursive self-improving
+agent that automatically builds high-speed LLM inference engines by training
+high-performing EAGLE draft heads, lightweight draft models built on the target
+LLM's internal features. In each iteration, the agent proposes a draft-head
+design, spanning architecture, training data, training procedure and draft-tree
+configuration, and trains the head. Its speedup is then measured by a separate
+scoring program that the agent cannot access, which prevents reward hacking. The
+proposed design and its results are then passed to the next iteration, where the
+agent further improves on them. In addition, the agent contains a knowledge base
+of past experimental findings that reduces the expertise and computation this
+search requires; the knowledge base is updated after every run, so the agent
+improves over time.
 
 This repository is one such build, end to end for one target: the recipe the
 agent converged on, the harness that measures a head, the evidence for each
