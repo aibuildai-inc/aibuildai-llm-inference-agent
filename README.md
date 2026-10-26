@@ -7,6 +7,14 @@ target: a transferable recipe for training speculative-decoding draft heads, the
 harness that measures them, the evidence for each design choice, and the agent
 that found the recipe in the first place.
 
+The agent works in iterations. Each one proposes a draft-head design -- head
+architecture, training data, training procedure, draft-tree configuration --
+trains it, and then has it timed by a separate scoring program the agent cannot
+reach, so no agent grades its own work. The design and its measured speedup pass
+to the next iteration. Findings also accumulate in written guides between runs,
+which is why three successive runs on this task reached 1.664x, 1.900x and
+2.0089x.
+
 The reference result below is for one target model; the recipe itself is not
 specific to it (see **Scope**). Model and method names appear in the results and
 the recipe where they carry meaning, not in the project's structure.
@@ -22,6 +30,11 @@ MT-Bench, T=0, 80 questions x 2 turns, 1024 new tokens, batch 1
   quality (paired, GSM8K 500 + HumanEval 164):
     7 : 7 discordant, McNemar exact p = 1.000
 ```
+
+Stock vLLM serves this model at 52.1 tok/s, the same speed as stock SGLang, so
+the factor of two is a speculation gain and not an artefact of a slow baseline.
+That figure comes from the report; `eval/` has no vLLM arm, because vLLM refuses
+to load a draft head whose vocabulary size differs from the target's.
 
 Full numbers and their caveats: **[RESULTS.md](RESULTS.md)**.
 How the head was built: **[RECIPE.md](RECIPE.md)**.
