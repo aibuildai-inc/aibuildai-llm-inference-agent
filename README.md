@@ -69,24 +69,6 @@ to load a draft head whose vocabulary size differs from the target's.
 Full numbers and their caveats: **[RESULTS.md](RESULTS.md)**.
 How the head was built: **[RECIPE.md](RECIPE.md)**.
 
-## What is and is not claimed
-
-**Claimed.** On this target, this host and these benchmarks, the head roughly
-doubles SGLang's batch-1 decoding throughput, and we could not detect a quality
-difference at n=664 paired items.
-
-**Not claimed.** Not bit-identical output. Greedy verification guarantees the
-verifier emits the target's own argmax, so a proposer cannot change which token
-is chosen -- but bf16 ties round differently between a cached single-token
-decode and a batched tree verify, and token streams do diverge (10-15 of 30
-streams matched exactly on a probe; ~0.86% of tokens differ). The honest phrasing
-is "output distribution preserved under the verifier's own logits; token streams
-not bit-identical".
-
-**Not claimed.** That quality is provably unchanged. 7:7 discordant means *no
-detectable difference at this sample size*, not zero difference. Resolving a
-1-point difference at p<0.05 needs roughly 800 items per arm.
-
 ## Requirements
 
 - 1 GPU with >= 60 GB free (measured on A100-SXM4-80GB)
