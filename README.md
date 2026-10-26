@@ -1,7 +1,16 @@
-# AIBuildAI Inference Agent
+<h1 align="center">AIBuildAI LLM-Inference Agent</h1>
 
-*A recursive self-improving agent that automatically builds high-speed LLM
-inference engines.*
+<h3 align="center">A draft head built end to end by an agent, serving 2x faster than SGLang and vLLM</h3>
+
+---
+
+<p align="center">
+  <a href="https://join.slack.com/t/aibuildaicommunity/shared_invite/zt-4a40v9kus-bQr~NIAZSKJkTwYxj5Elww"><img src="https://img.shields.io/badge/Slack-AIBuildAI%20Community-4A154B?logo=slack" alt="Slack"></a>
+  <a href="https://discord.gg/JWrbhmkV6k"><img src="https://img.shields.io/badge/Discord-AIBuildAI%20Community-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
+</p>
+
+---
+
 
 Speculative decoding accelerates generation by using a lightweight draft model
 to quickly propose several tokens, which the target LLM then verifies in a single
@@ -25,6 +34,16 @@ improves over time.
 This repository is one such build, end to end for one target: the recipe the
 agent converged on, the harness that measures a head, the evidence for each
 design choice, and the agent itself.
+
+Two things make it more than a coding agent. A **score contract**: the agent
+never grades itself, because a separate scoring program with its own GPUs
+re-times the plain and the speculative arm after the agent's session has closed,
+and the run's value is that program's number. And a **written record**: each step
+leaves one, the next step reads it, and between runs those records are folded
+into the guides a later run starts from -- which is what makes the line improve
+rather than restart.
+
+## Current Results
 
 The reference result below is for one target model; the recipe itself is not
 specific to it (see **Scope**). Model and method names appear in the results and
@@ -87,8 +106,40 @@ detectable difference at this sample size*, not zero difference. Resolving a
 - **A one-line SGLang patch** (see below). Without it the head computes a
   different function and the measurement is meaningless.
 
+## Installation
 
-## Four ways in
+```bash
+git clone https://github.com/aibuildai-inc/aibuildai-llm-inference-agent.git
+cd aibuildai-llm-inference-agent
+```
+
+There is no single install step, because the three paths need different
+environments: A and D serve the target with SGLang, B only trains, and C runs the
+agent framework. Each path below installs its own, in commands verified on a
+fresh machine. Start with the one you want.
+
+## Configuration
+
+Quickstart C runs agents on the machine that holds the GPUs, so that machine
+needs model access -- a Claude Code login, or the source-build skip flag. A
+search launched without it does not fail, it retries forever at zero tokens; the
+callout in Quickstart C has the commands.
+
+| Environment variable | Purpose |
+|---|---|
+| `HF_HOME` | Hugging Face cache; the target needs ~28 GB, and the default `~/.cache` is often too small |
+| `TMPDIR` | Scratch for the JIT cache and the packaged draft dir; point it at a large disk if `/tmp` is small |
+| `SPECDEC_JIT_CACHE` | flashinfer JIT cache (default `$TMPDIR/specdec-jit-cache`) |
+| `SPECDEC_TASK` | Task folder `eval/run_eval.sh` measures against (default `task/`) |
+| `SPECDEC_HEAD` | Head weights to measure (default `heads/draft_head.pt`); `--head` overrides it |
+| `SPECDEC_RESULTS` | Where an evaluation writes its arms (default `eval/results`); `--results` overrides it |
+| `PYTHON` | Interpreter `eval/run_eval.sh` uses, when it is not the one on `PATH` |
+| `AIBUILDAI_SKIP_SUBSCRIPTION_CHECK` | Set to `1` when running the framework from source without a subscription check |
+| `AIBUILDAI_CLIPROXYAPI_SOURCE_COMMIT` | Pins the proxy component the framework builds; the value is in Quickstart C |
+
+## Usage
+
+### Four ways in
 
 A, B and C are independent; D measures what B or C produced.
 
@@ -99,7 +150,7 @@ A, B and C are independent; D measures what B or C produced.
 | **C** re-run the end-to-end search | a GPU, and either an AIBuildAI login or the source-build skip flag; 5--6 h per step (17 h to verify, 36 h for all ten) | the agent builds a head from the task contract |
 | **D** evaluate the head C produced | a head from B or C | your head on the same protocol as the published one |
 
-## Quickstart A — verify the published number
+### Quickstart A — verify the published number
 
 These are the commands as run on a second machine, in this order.
 
@@ -192,7 +243,7 @@ that is the instrument's resolution, not slack. **A cold clone on a second
 machine measured 1.9943x against the published 2.0089x -- 0.73% apart, with tau
 identical to four decimals.**
 
-## Quickstart B — train your own head
+### Quickstart B — train your own head
 
     cd train
     python prepare.py          # harvest teacher features (hours; writes data/)
@@ -224,7 +275,7 @@ Both paths have been run from a clean clone: the four-command path trains on
 because regenerating 6M tokens of teacher features costs hours; it was grown
 across search steps rather than built in one pass.
 
-## Quickstart C — re-run the end-to-end search
+### Quickstart C — re-run the end-to-end search
 
 This is the agent that *found* the head, not the head. It needs no trained head
 and no weights to start; it builds one from the task contract -- the part of the
@@ -375,8 +426,7 @@ and two things that will otherwise surprise you:
   forming its own hypothesis. What should reproduce is the stock baseline
   (52.30--52.43 tok/s across all ten scored steps) and roughly the end point.
 
-
-## Quickstart D — evaluate the head your own search produced
+### Quickstart D — evaluate the head your own search produced
 
 Quickstart A measures the *published* head. A search (C) or a local training run
 (B) leaves a different one, in a different layout: `head.pt` and
@@ -435,7 +485,51 @@ F=$CONDA_PREFIX/lib/python3.12/site-packages/sglang/srt/models/qwen2_eagle.py
 cp "$F.orig" "$F"
 ```
 
-## Layout
+## Outputs
+
+A search writes one run home per run:
+
+```
+{playground}/<task-name>/<timestamp>_<run-id>/
+  run_config.json          the final configuration and the run id
+  public/                  what every step reads: the frozen task README and the data Setup prepared
+  private/                 the score program, the metric manifest, the baseline attempt
+  workspace/search_1/      worker_1..N (one per step), records/, score_program_1..N, code/
+  deliverable/             the delivered head: head.pt + head_config.json
+  program-environment/     the environment the run built for itself
+  resource_samples.jsonl   host resource samples over the run
+```
+
+`workspace/search_1/records/worker_N` is the written record step N+1 reads, and
+`score_program_N/.../.program-result.json` holds the score that step earned.
+Quickstart D measures a delivered head on the same protocol as the published one.
+
+## Method
+
+**The task.** Speculative decoding needs a draft head trained for one target
+model, and the choices interact: the head's width and depth, the data it learns
+from, the training objective, and the draft-tree shape the server runs it with.
+Each candidate costs hours, because a head must be trained before it can be
+timed, so only ten or so fit in a budget.
+
+**The search.** Each step is one complete experiment -- build, train, time --
+run by a fresh agent that inherits only the written record of the steps before
+it. A step changes one thing, measures it, and writes down what moved and what
+did not, including the ideas that failed. That record is the only channel
+between steps, which is what keeps a step's claim auditable.
+
+**The score contract.** A separate program with its own GPUs re-times both arms
+after the step's session has closed and returns the speedup. If any of its
+checks fails the step is marked failed rather than given a low score, so a head
+that silently never loaded cannot score at all.
+
+**What improves between runs.** The records are folded back into the written
+guides a later run starts from, so three successive runs on this task reached
+1.664x, 1.900x and 2.0089x without the method changing. `RECIPE.md` is the
+current state of that knowledge, and `search/task/skills/` holds the guides the
+agents read.
+
+## Project layout
 
 ```
 train/       build a head of your own (the code that produced this one)
@@ -493,6 +587,37 @@ applied to a second, much larger target (a 123B dense model at tensor-parallel
 specific to Qwen2.5-14B -- but that result is not part of this repository and
 was not evaluated on MT-Bench.
 
+## Citation
+
+The technical report for this line accompanies this repository. Until its paper
+is released, cite the AIBuildAI papers:
+
+```bibtex
+@article{zhang2026aibuildai,
+    title={AIBuildAI: An AI Agent for Automatically Building AI Models},
+    author={Ruiyi Zhang and Peijia Qin and Qi Cao and Li Zhang and Pengtao Xie},
+    year={2026},
+    journal={arXiv},
+    url={https://arxiv.org/abs/2604.14455}
+}
+
+@article{zhang2026aibuildai2,
+    title={AIBuildAI-2: A Knowledge-Enhanced Agent for Automatically Building AI Models},
+    author={Ruiyi Zhang and Peijia Qin and Qi Cao and Li Zhang and Pengtao Xie},
+    year={2026},
+    journal={arXiv},
+    url={https://arxiv.org/abs/2605.27873}
+}
+
+@article{qin2026aibuildai25,
+    title={AIBuildAI-2.5: Efficient Autonomous AI Model Development Through LLM-Guided Tree Search},
+    author={Peijia Qin and Ruiyi Zhang and Qi Cao and Han Guo and Li Zhang and Pengtao Xie},
+    year={2026},
+    journal={arXiv},
+    url={https://arxiv.org/abs/2609.25047}
+}
+```
+
 ## License
 
 This repository's code and documentation are MIT licensed (`LICENSE`).
@@ -500,3 +625,19 @@ This repository's code and documentation are MIT licensed (`LICENSE`).
 The three bundled evaluation datasets and the target model keep their own terms,
 and the draft head weights are derived from self-distilled outputs of the target
 model -- see `DATA_AND_LICENSES.md` before redistributing any of those.
+
+## Community
+
+Questions and discussion: join the [AIBuildAI Community Slack](https://join.slack.com/t/aibuildaicommunity/shared_invite/zt-4a40v9kus-bQr~NIAZSKJkTwYxj5Elww)
+or the [AIBuildAI Community Discord](https://discord.gg/JWrbhmkV6k). Use the
+issue tracker for bugs and feature requests.
+
+## Contact us
+
+For enterprises interested in adopting or deploying the AIBuildAI LLM-Inference
+Agent at scale, including technical consulting, custom inference engagements, or
+partnership inquiries, contact us at pengtao.xie@aibuildai.io.
+
+Long-term active contributors to this repository are eligible for coding agent
+sponsorship, such as Claude Code, Cursor, or OpenAI Codex. Email
+pengtao.xie@aibuildai.io with your most important commits or pull requests.
