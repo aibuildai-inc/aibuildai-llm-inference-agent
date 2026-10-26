@@ -20,18 +20,18 @@ target LLM then verifies in a single forward pass. Its speedup therefore depends
 on how closely the draft model approximates the target LLM, and **building such a
 draft model for each LLM requires substantial expertise and manual effort**.
 
-To address this, we present the **AIBuildAI Inference Agent**, a **recursive
+To address this, we present the AIBuildAI Inference Agent, a recursive
 self-improving agent that automatically builds high-speed LLM inference
-engines** by training high-performing EAGLE draft heads, lightweight draft models
+engines by training high-performing EAGLE draft heads, lightweight draft models
 built on the target LLM's internal features. In each iteration, the agent
-proposes a draft-head design, **spanning architecture, training data, training
-procedure and draft-tree configuration**, and trains the head. Its speedup is
-then measured by **a separate scoring program that the agent cannot access, which
-prevents reward hacking**. The proposed design and its results are then passed to
+proposes a draft-head design, spanning architecture, training data, training
+procedure and draft-tree configuration, and trains the head. Its speedup is
+then measured by a separate scoring program that the agent cannot access, which
+prevents reward hacking. The proposed design and its results are then passed to
 the next iteration, where the agent further improves on them. In addition, the
-AIBuildAI Inference Agent contains **a knowledge base of past experimental
-findings** that reduces the expertise and computation this search requires; **the
-knowledge base is updated after every run, so the agent improves over time**.
+AIBuildAI Inference Agent contains a knowledge base of past experimental
+findings that reduces the expertise and computation this search requires; the
+knowledge base is updated after every run, so the agent improves over time.
 
 Experiments show that the agent's automatically built draft head makes
 generation **2.0x faster than both SGLang and vLLM** and **6.2x faster than a
