@@ -61,9 +61,12 @@ factor of two is a speculation gain and not an artefact of a slow baseline.
 `eval/` has no vLLM arm, because vLLM refuses to load a draft head whose
 vocabulary size differs from the target's; that number comes from the report.
 
-Accuracy did not change: of 664 GSM8K and HumanEval problems answered both with
-the head and without it, 7 changed in each direction, which is what chance alone
-looks like.
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/quality-dark.svg">
+    <img src="assets/quality-light.svg" width="100%" alt="Paired accuracy with and without the head: GSM8K 92.20 percent in both arms with 5 problems changed each way, HumanEval 80.49 percent in both arms with 2 each way, combined 7 to 7 over 664 problems, McNemar exact p = 1.000.">
+  </picture>
+</p>
 
 Full numbers and their caveats: **[RESULTS.md](RESULTS.md)**.
 How the head was built: **[RECIPE.md](RECIPE.md)**.
