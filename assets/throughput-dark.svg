@@ -19,7 +19,7 @@
 <text x="284" y="157" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="13" fill="#c3c2b7" text-anchor="end">vLLM, defaults</text>
 <path d="M300 140 H598.8887272727272 a4 4 0 0 1 4 4 V160 a4 4 0 0 1 -4 4 H300 Z" fill="#898781"/>
 <text x="612.9" y="157" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="12.5" font-weight="600" fill="#f0efec">52.1<tspan fill="#898781" font-weight="400">  1.00x</tspan></text>
-<text x="284" y="201" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="13" fill="#c3c2b7" text-anchor="end">SGLang, stock</text>
+<text x="284" y="201" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="13" fill="#c3c2b7" text-anchor="end">SGLang, default</text>
 <path d="M300 184 H599.7905454545455 a4 4 0 0 1 4 4 V204 a4 4 0 0 1 -4 4 H300 Z" fill="#898781"/>
 <text x="613.8" y="201" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="12.5" font-weight="600" fill="#f0efec">52.2<tspan fill="#898781" font-weight="400">  1.00x</tspan></text>
 <text x="284" y="245" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="13" fill="#c3c2b7" text-anchor="end">AIBuildAI run 1</text>
@@ -31,5 +31,5 @@
 <text x="284" y="333" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="13" fill="#c3c2b7" text-anchor="end">AIBuildAI run 3, this repo</text>
 <path d="M300 316 H906.2807272727272 a4 4 0 0 1 4 4 V336 a4 4 0 0 1 -4 4 H300 Z" fill="#9ec5f4"/>
 <text x="920.3" y="333" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="12.5" font-weight="600" fill="#f0efec">104.9<tspan fill="#898781" font-weight="400">  2.01x</tspan></text>
-<text x="40" y="382" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="11.5" fill="#898781">Speedup is against stock SGLang from the same session. Blue: heads this agent built, one bar per run.</text>
+<text x="40" y="382" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="11.5" fill="#898781">Speedup is against default SGLang from the same session. Blue: heads this agent built, one bar per run.</text>
 </svg>

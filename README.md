@@ -53,14 +53,14 @@ the recipe where they carry meaning, not in the project's structure.
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/throughput-dark.svg">
-    <img src="assets/throughput-light.svg" width="100%" alt="Decoding throughput on MT-Bench, batch 1, one A100-80GB: HF generate() eager 16.8 tok/s, vLLM 52.1, stock SGLang 52.2, and the heads this agent built at 87.6, 100.1 and 104.9 tok/s across three runs.">
+    <img src="assets/throughput-light.svg" width="100%" alt="Decoding throughput on MT-Bench, batch 1, one A100-80GB: HF generate() eager 16.8 tok/s, vLLM 52.1, default SGLang 52.2, and the heads this agent built at 87.6, 100.1 and 104.9 tok/s across three runs.">
   </picture>
 </p>
 
-Stock vLLM serves this model at the same speed as stock SGLang, so the factor of
-two is a speculation gain and not an artefact of a slow baseline. `eval/` has no
-vLLM arm, because vLLM refuses to load a draft head whose vocabulary size
-differs from the target's; that number comes from the report.
+Default vLLM serves this model at the same speed as default SGLang, so the
+factor of two is a speculation gain and not an artefact of a slow baseline.
+`eval/` has no vLLM arm, because vLLM refuses to load a draft head whose
+vocabulary size differs from the target's; that number comes from the report.
 
 Accuracy did not change: of 664 GSM8K and HumanEval problems answered both with
 the head and without it, 7 changed in each direction, which is what chance alone
@@ -407,7 +407,7 @@ and two things that will otherwise surprise you:
   same search can be scored differently. `search/score.reference.py` is the one
   the published run used, to diff against or to pin;
 * a re-run will **not** retrace the published trajectory. Each step is an agent
-  forming its own hypothesis. What should reproduce is the stock baseline
+  forming its own hypothesis. What should reproduce is the default baseline
   (52.30--52.43 tok/s across all ten scored steps) and roughly the end point.
 
 ### Quickstart D — evaluate the head your own search produced
@@ -455,7 +455,7 @@ Two things to know before reading the result:
 ### The SGLang patch
 
 `tools/patch_sglang.sh` edits `sglang/srt/models/qwen2_eagle.py` in your
-installed SGLang. The stock file deletes the draft layer's `input_layernorm`,
+installed SGLang. The default file deletes the draft layer's `input_layernorm`,
 which this head needs: with the layernorm removed the head computes a different
 function (relative error 1.84 against the reference implementation, versus
 7.7e-17 with the patch). The script matches on structure rather than line
