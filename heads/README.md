@@ -6,7 +6,7 @@ this directory, beside `draft_head.config.json`.
 
 ```bash
 curl -L -o heads/draft_head.pt \
-  https://github.com/importZL/AIBuildAI-SpecDec/releases/download/v1.0.0/draft_head.pt
+  https://github.com/aibuildai-inc/aibuildai-llm-inference-agent/releases/download/v1.0.0/draft_head.pt
 ```
 
 <details>

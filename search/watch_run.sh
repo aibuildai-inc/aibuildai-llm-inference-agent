@@ -78,7 +78,7 @@ PYS
   if [ -f "$RUN/private/score.py" ]; then
     printf '  own scorer   : %s lines' "$(wc -l < "$RUN/private/score.py")"
     ref="${SPECDEC_REPO:-$(cd "$(dirname "$0")" && pwd)}/search/score.reference.py"
-    [ -f "$ref" ] || ref="$(cd "$(dirname "$0")" && pwd)/AIBuildAI-SpecDec/search/score.reference.py"
+    [ -f "$ref" ] || ref="$(cd "$(dirname "$0")" && pwd)/aibuildai-llm-inference-agent/search/score.reference.py"
     [ -f "$ref" ] && printf '  (%s lines differ from score.reference.py)' \
       "$(diff "$RUN/private/score.py" "$ref" 2>/dev/null | grep -c '^[<>]')"
     printf '\n'

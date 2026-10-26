@@ -1,4 +1,7 @@
-# AIBuildAI-SpecDec
+# AIBuildAI Inference Agent
+
+*A recursive self-improving agent that automatically builds high-speed LLM
+inference engines.*
 
 An LLM inference engine is not one artefact but a stack: kernels, memory
 management, scheduling, and -- the only layer that has to be *learned* for each
@@ -93,8 +96,8 @@ A, B and C are independent; D measures what B or C produced.
 These are the commands as run on a second machine, in this order.
 
 ```bash
-git clone https://github.com/importZL/AIBuildAI-SpecDec.git
-cd AIBuildAI-SpecDec
+git clone https://github.com/aibuildai-inc/aibuildai-llm-inference-agent.git
+cd aibuildai-llm-inference-agent
 
 # 1. conda, if the machine has none. Everything below lives in conda
 #    environments; a bare GPU image usually ships neither conda nor a
@@ -137,7 +140,7 @@ nvcc -ccbin "$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-g++" /tmp/t.cu -o /tmp/tcu
 
 # 4. fetch the head weights (public release, no token needed)
 curl -L -o heads/draft_head.pt \
-  https://github.com/importZL/AIBuildAI-SpecDec/releases/download/v1.0.0/draft_head.pt
+  https://github.com/aibuildai-inc/aibuildai-llm-inference-agent/releases/download/v1.0.0/draft_head.pt
 sha256sum heads/draft_head.pt
 # expect 7a744703b50f49f9d5cb6ad04256e6a5ee81746b70d4426e3bd900980e371343
 
@@ -152,7 +155,7 @@ tmux new -s eval
 #    INSIDE tmux you get a fresh shell: the env and the exports above are NOT
 #    inherited. Set them up again before running anything.
 conda activate sglang-baseline
-cd ~/AIBuildAI-SpecDec
+cd ~/aibuildai-llm-inference-agent
 export HF_HOME="$HOME/hf-cache"
 export TMPDIR=/var/tmp
 
@@ -296,7 +299,7 @@ work that is normally a human's, done by the agent rather than reproduced from
     tmux new -s search
     #    inside tmux the shell is fresh -- nothing above is inherited:
     conda activate aibuildai
-    cd ~/AIBuildAI-SpecDec
+    cd ~/aibuildai-llm-inference-agent
     export AIBUILDAI_CLIPROXYAPI_SOURCE_COMMIT=21c3972447b7b51b0c86bb53f4e2552bac2526a4
     export AIBUILDAI_SKIP_SUBSCRIPTION_CHECK=1       # if you used the skip flag
     export HF_HOME="$HOME/hf-cache" TMPDIR=/var/tmp
