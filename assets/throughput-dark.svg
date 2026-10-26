@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 400" width="1120" height="400" role="img" aria-label="Decoding throughput: HF eager 16.8, vLLM 52.1, SGLang 52.2, AIBuildAI runs 87.6, 100.1 and 104.9 tokens per second">
+<rect width="1120" height="400" fill="#1a1a19"/>
+<text x="40" y="44" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="17" font-weight="600" fill="#f0efec">Decoding throughput, one request at a time</text>
+<text x="40" y="66" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="12.5" fill="#898781">Qwen2.5-14B-Instruct &#183; MT-Bench, T=0 &#183; batch 1 &#183; one A100-80GB &#183; tokens per second</text>
+<line x1="300.0" y1="86" x2="300.0" y2="350" stroke="#2c2c2a" stroke-width="1"/>
+<text x="300.0" y="368" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="11.5" fill="#898781" text-anchor="middle">0</text>
+<line x1="445.5" y1="86" x2="445.5" y2="350" stroke="#2c2c2a" stroke-width="1"/>
+<text x="445.5" y="368" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="11.5" fill="#898781" text-anchor="middle">25</text>
+<line x1="590.9" y1="86" x2="590.9" y2="350" stroke="#2c2c2a" stroke-width="1"/>
+<text x="590.9" y="368" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="11.5" fill="#898781" text-anchor="middle">50</text>
+<line x1="736.4" y1="86" x2="736.4" y2="350" stroke="#2c2c2a" stroke-width="1"/>
+<text x="736.4" y="368" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="11.5" fill="#898781" text-anchor="middle">75</text>
+<line x1="881.8" y1="86" x2="881.8" y2="350" stroke="#2c2c2a" stroke-width="1"/>
+<text x="881.8" y="368" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="11.5" fill="#898781" text-anchor="middle">100</text>
+<line x1="300" y1="86" x2="300" y2="350" stroke="#383835" stroke-width="1"/>
+<text x="284" y="113" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="13" fill="#c3c2b7" text-anchor="end">HF generate(), eager</text>
+<path d="M300 96 H393.64654545454545 a4 4 0 0 1 4 4 V116 a4 4 0 0 1 -4 4 H300 Z" fill="#898781"/>
+<text x="407.6" y="113" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="12.5" font-weight="600" fill="#f0efec">16.8<tspan fill="#898781" font-weight="400">  0.32x</tspan></text>
+<text x="284" y="157" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="13" fill="#c3c2b7" text-anchor="end">vLLM, defaults</text>
+<path d="M300 140 H598.8887272727272 a4 4 0 0 1 4 4 V160 a4 4 0 0 1 -4 4 H300 Z" fill="#898781"/>
+<text x="612.9" y="157" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="12.5" font-weight="600" fill="#f0efec">52.1<tspan fill="#898781" font-weight="400">  1.00x</tspan></text>
+<text x="284" y="201" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="13" fill="#c3c2b7" text-anchor="end">SGLang, stock</text>
+<path d="M300 184 H599.7905454545455 a4 4 0 0 1 4 4 V204 a4 4 0 0 1 -4 4 H300 Z" fill="#898781"/>
+<text x="613.8" y="201" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="12.5" font-weight="600" fill="#f0efec">52.2<tspan fill="#898781" font-weight="400">  1.00x</tspan></text>
+<text x="284" y="245" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="13" fill="#c3c2b7" text-anchor="end">AIBuildAI run 1</text>
+<path d="M300 228 H805.7192727272727 a4 4 0 0 1 4 4 V248 a4 4 0 0 1 -4 4 H300 Z" fill="#2a78d6"/>
+<text x="819.7" y="245" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="12.5" font-weight="600" fill="#f0efec">87.6<tspan fill="#898781" font-weight="400">  1.66x</tspan></text>
+<text x="284" y="289" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="13" fill="#c3c2b7" text-anchor="end">AIBuildAI run 2</text>
+<path d="M300 272 H878.1498181818182 a4 4 0 0 1 4 4 V292 a4 4 0 0 1 -4 4 H300 Z" fill="#5598e7"/>
+<text x="892.1" y="289" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="12.5" font-weight="600" fill="#f0efec">100.1<tspan fill="#898781" font-weight="400">  1.90x</tspan></text>
+<text x="284" y="333" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="13" fill="#c3c2b7" text-anchor="end">AIBuildAI run 3, this repo</text>
+<path d="M300 316 H906.2807272727272 a4 4 0 0 1 4 4 V336 a4 4 0 0 1 -4 4 H300 Z" fill="#9ec5f4"/>
+<text x="920.3" y="333" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="12.5" font-weight="600" fill="#f0efec">104.9<tspan fill="#898781" font-weight="400">  2.01x</tspan></text>
+<text x="40" y="382" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="11.5" fill="#898781">Speedup is against stock SGLang from the same session. Blue: heads this agent built, one bar per run.</text>
+</svg>

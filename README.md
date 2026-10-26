@@ -5,6 +5,7 @@
 ---
 
 <p align="center">
+  <a href="docs/aibuildai-llm-inference-agent.pdf"><img src="https://img.shields.io/badge/Tech%20Report-PDF-b31b1b?logo=adobeacrobatreader&logoColor=white" alt="Tech report"></a>
   <a href="https://join.slack.com/t/aibuildaicommunity/shared_invite/zt-4a40v9kus-bQr~NIAZSKJkTwYxj5Elww"><img src="https://img.shields.io/badge/Slack-AIBuildAI%20Community-4A154B?logo=slack" alt="Slack"></a>
   <a href="https://discord.gg/JWrbhmkV6k"><img src="https://img.shields.io/badge/Discord-AIBuildAI%20Community-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
 </p>
@@ -49,25 +50,46 @@ The reference result below is for one target model; the recipe itself is not
 specific to it (see **Scope**). Model and method names appear in the results and
 the recipe where they carry meaning, not in the project's structure.
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/throughput-dark.svg">
+    <img src="assets/throughput-light.svg" width="100%" alt="Decoding throughput on MT-Bench at temperature 0, batch 1, one A100-80GB: HF generate() eager 16.8 tok/s, vLLM 52.1, stock SGLang 52.2, and the heads this agent built at 87.6, 100.1 and 104.9 tok/s across three runs.">
+  </picture>
+</p>
+
+Stock vLLM serves this model at the same speed as stock SGLang, so the factor of
+two is a speculation gain and not an artefact of a slow baseline. `eval/` has no
+vLLM arm, because vLLM refuses to load a draft head whose vocabulary size
+differs from the target's; that number comes from the report.
+
+Accuracy did not change: of 664 GSM8K and HumanEval problems answered both with
+the head and without it, 7 changed in each direction, which is what chance alone
+looks like.
+
+<details>
+<summary>The same numbers as text</summary>
+
 ```
 target: Qwen/Qwen2.5-14B-Instruct      host: 1x A100-SXM4-80GB
 MT-Bench, T=0, 80 questions x 2 turns, 1024 new tokens, batch 1
 
-  HF generate(), eager          16.783 tok/s
-  stock SGLang, no speculation  52.214 tok/s
-  SGLang + this head           104.892 tok/s     2.0089x      tau 3.2061
+  HF generate(), eager          16.783 tok/s     0.321x
+  stock vLLM, no speculation     52.059 tok/s     0.997x
+  stock SGLang, no speculation   52.214 tok/s     1.000x
+  SGLang + run1 head             87.608 tok/s     1.664x
+  SGLang + run2 head            100.057 tok/s     1.900x
+  SGLang + this head            104.892 tok/s     2.0089x     tau 3.2061
 
   quality (paired, GSM8K 500 + HumanEval 164):
     7 : 7 discordant, McNemar exact p = 1.000
 ```
 
-Stock vLLM serves this model at 52.1 tok/s, the same speed as stock SGLang, so
-the factor of two is a speculation gain and not an artefact of a slow baseline.
-That figure comes from the report; `eval/` has no vLLM arm, because vLLM refuses
-to load a draft head whose vocabulary size differs from the target's.
+</details>
 
 Full numbers and their caveats: **[RESULTS.md](RESULTS.md)**.
 How the head was built: **[RECIPE.md](RECIPE.md)**.
+The method and every measurement in one document:
+**[the technical report](docs/aibuildai-llm-inference-agent.pdf)**.
 
 ## Requirements
 
@@ -571,8 +593,9 @@ was not evaluated on MT-Bench.
 
 ## Citation
 
-The technical report for this line accompanies this repository. Until its paper
-is released, cite the AIBuildAI papers:
+The technical report for this line is
+[`docs/aibuildai-llm-inference-agent.pdf`](docs/aibuildai-llm-inference-agent.pdf);
+its paper is to be released. Until then, cite the AIBuildAI papers:
 
 ```bibtex
 @article{zhang2026aibuildai,
