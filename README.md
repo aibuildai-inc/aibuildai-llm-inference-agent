@@ -60,9 +60,8 @@ The result below is for one target model; the recipe is not specific to it
 
 Both baselines are each framework's own speculative decoding, enabled and measured
 here: SGLang's `NGRAM` (a suffix automaton) and vLLM's `ngram` (prompt lookup).
-Neither needs a checkpoint or any training -- one flag -- so they are what a user
-has for free. All four such modes the two frameworks offer were measured and these
-two were the fastest; `RESULTS.md` has the detail.
+All four such modes the two frameworks offer were measured and these two were the
+fastest; `RESULTS.md` has the detail.
 
 `eval/` has a vLLM arm only for its n-gram speculation: vLLM refuses to load a
 draft head whose vocabulary size differs from the target's, and has no EAGLE
