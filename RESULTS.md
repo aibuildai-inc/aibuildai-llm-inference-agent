@@ -116,6 +116,12 @@ symmetric, which is the signature of sampling noise rather than degradation.
 Token counts across arms stayed within 2.14%, so the accuracy comparison is not
 confounded by different output lengths.
 
+**The framework baselines' accuracy was not measured.** Everything in this section
+compares our head against decoding without it. The same argument should hold for
+n-gram speculation -- under greedy decoding the verify kernel emits the target's
+own argmax whatever proposed it -- but it has not been checked here, so no
+accuracy claim is made for the 70.932 and 58.966 arms.
+
 ### What "no quality change" does and does not mean
 
 Under greedy decoding SGLang's verify kernel only ever emits the TARGET model's

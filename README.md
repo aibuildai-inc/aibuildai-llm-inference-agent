@@ -41,7 +41,7 @@ at a time on one NVIDIA A100 GPU, **after the agent ran for 36 hours with no
 human involvement**. The resulting engine reaches **104.9 tokens per second** on
 MT-Bench, against **70.9 for SGLang** and **59.0 for vLLM** -- those two baselines
 each running the framework's own built-in n-gram speculation, ours running the
-head the agent trained -- with identical accuracy on GSM8K and HumanEval.
+head the agent trained -- with similar accuracy on GSM8K and HumanEval.
 
 This repository is its source code, for running from source, reading, and
 modifying.
