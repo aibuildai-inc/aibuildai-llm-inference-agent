@@ -392,11 +392,11 @@ and the ratio is not comparable.
 
 **What a from-scratch run produced**, on one A100, starting from this repo:
 
-| step | what the agent changed | score | tau | baseline |
-|---|---|---|---|---|
-| 1 | built the pipeline; tree sweep, width, then on-policy data (1.41M tokens) | 1.8671 | 3.028 | 52.457 |
-| 2 | on-policy volume 1.41M -> 2.49M | 1.9612 | 3.194 | 52.434 |
-| 3 | on-policy volume 2.49M -> 3.71M | 2.0068 | 3.279 | 52.460 |
+| step | what the agent changed | score | tau |
+|---|---|---|---|
+| 1 | built the pipeline; tree sweep, width, then on-policy data (1.41M tokens) | 1.8671 | 3.028 |
+| 2 | on-policy volume 1.41M -> 2.49M | 1.9612 | 3.194 |
+| 3 | on-policy volume 2.49M -> 3.71M | 2.0068 | 3.279 |
 
 About 5--6 hours per step. **Three steps is enough to verify the machinery** --
 the baselines agree to 0.05% by then; the remaining seven chase the
