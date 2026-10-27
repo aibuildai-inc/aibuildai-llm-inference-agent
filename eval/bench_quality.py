@@ -54,9 +54,15 @@ def main() -> None:
     ap.add_argument("--harness", default=None)
     ap.add_argument("--out", required=True)
     ap.add_argument("--draft", default=None)
+    ap.add_argument("--backend", default="sglang", choices=["sglang", "vllm"])
+    ap.add_argument("--spec-algo", default=None, choices=["ngram"],
+                    help="draftless speculation; mutually exclusive with --draft")
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--max-new-tokens", type=int, default=512)
     a = ap.parse_args()
+
+    if a.draft and a.spec_algo:
+        ap.error("--draft and --spec-algo are different proposers; pick one")
 
     cfg = json.loads(Path(a.models).read_text())
     pair, sg = cfg["speed_pair"], cfg["sglang"]
@@ -81,40 +87,75 @@ def main() -> None:
         sys.path.insert(0, str(Path(a.harness).resolve()))
         from _toolchain import ensure as _ensure
         _ensure()
-    import sglang as sgl
+    if a.backend == "vllm":
+        # draftless arms only: vLLM has no EAGLE for Qwen2.5 and rejects our head's vocab.
+        # async_scheduling off in every vLLM arm -- ngram disables it anyway, and an
+        # unmatched handicap is what voided earlier vLLM measurements.
+        from vllm import LLM, SamplingParams
+        from vllm.inputs import TokensPrompt
+        vspec = None
+        if a.spec_algo == "ngram":
+            vspec = {"method": "ngram", "num_speculative_tokens": 5,
+                     "prompt_lookup_min": 2, "prompt_lookup_max": 4}
+        llm = LLM(model=pair["target"], dtype=pair["dtype"], gpu_memory_utilization=0.60,
+                  max_model_len=max(8192, a.max_new_tokens * 4), enforce_eager=False,
+                  disable_log_stats=False, async_scheduling=False,
+                  **({"speculative_config": vspec} if vspec else {}))
+        vsp = SamplingParams(temperature=0.0, max_tokens=a.max_new_tokens, detokenize=False)
 
-    common = dict(model_path=pair["target"], dtype=pair["dtype"],
+        def gen(p):
+            ids = tok(tok.apply_chat_template([{"role": "user", "content": p}],
+                                              tokenize=False,
+                                              add_generation_prompt=True))["input_ids"]
+            r = llm.generate(TokensPrompt(prompt_token_ids=ids), vsp, use_tqdm=False)
+            out = list(r[0].outputs[0].token_ids)
+            # vLLM exposes acceptance only as aggregate log stats, never per request
+            return tok.decode(out, skip_special_tokens=True), len(out), 0
+
+        engine_args_record = {"backend": "vllm", "async_scheduling": False,
+                              "speculative_config": vspec}
+    else:
+        import sglang as sgl
+
+        common = dict(model_path=pair["target"], dtype=pair["dtype"],
                   mem_fraction_static=sg["mem_fraction_static"],
-                  max_total_tokens=max(sg["max_total_tokens"], 8192),
-                  disable_cuda_graph=sg["disable_cuda_graph"],
-                  skip_tokenizer_init=True, log_level="info")
-    spec = {}
-    if a.draft:
-        ov = {}
-        f = Path(a.draft) / "_overrides.json"
-        if f.is_file(): ov = json.loads(f.read_text())
-        spec = dict(speculative_algorithm=sg["speculative_algorithm"],
-                    speculative_draft_model_path=a.draft,
-                    speculative_num_steps=int(ov.get("speculative_num_steps", sg["speculative_num_steps"])),
-                    speculative_eagle_topk=int(ov.get("speculative_eagle_topk", sg["speculative_eagle_topk"])),
-                    speculative_num_draft_tokens=int(ov.get("speculative_num_draft_tokens", sg["speculative_num_draft_tokens"])))
-    engine = sgl.Engine(**common, **spec)
-    sampling = {"temperature": 0.0, "max_new_tokens": a.max_new_tokens}
+                      max_total_tokens=max(sg["max_total_tokens"], 8192),
+                      disable_cuda_graph=sg["disable_cuda_graph"],
+                      skip_tokenizer_init=True, log_level="info")
+        spec = {}
+        if a.spec_algo == "ngram":
+            # no knobs: _handle_ngram resolves num_draft_tokens=12, topk=10, steps=1
+            spec = dict(speculative_algorithm="NGRAM")
+        elif a.draft:
+            ov = {}
+            f = Path(a.draft) / "_overrides.json"
+            if f.is_file(): ov = json.loads(f.read_text())
+            spec = dict(speculative_algorithm=sg["speculative_algorithm"],
+                        speculative_draft_model_path=a.draft,
+                        speculative_num_steps=int(ov.get("speculative_num_steps", sg["speculative_num_steps"])),
+                        speculative_eagle_topk=int(ov.get("speculative_eagle_topk", sg["speculative_eagle_topk"])),
+                        speculative_num_draft_tokens=int(ov.get("speculative_num_draft_tokens", sg["speculative_num_draft_tokens"])))
+        engine = sgl.Engine(**common, **spec)
+        sampling = {"temperature": 0.0, "max_new_tokens": a.max_new_tokens}
 
-    def gen(p):
-        ids = tok(tok.apply_chat_template([{"role": "user", "content": p}], tokenize=False,
-                                          add_generation_prompt=True))["input_ids"]
-        r = engine.generate(input_ids=ids, sampling_params=sampling)
-        o = r[0] if isinstance(r, list) else r
-        out = list(o.get("output_ids") or o.get("token_ids") or [])
-        mi = o.get("meta_info", {}) or {}
-        return tok.decode(out, skip_special_tokens=True), len(out), int(mi.get("spec_verify_ct") or 0)
+        def gen(p):
+            ids = tok(tok.apply_chat_template([{"role": "user", "content": p}], tokenize=False,
+                                              add_generation_prompt=True))["input_ids"]
+            r = engine.generate(input_ids=ids, sampling_params=sampling)
+            o = r[0] if isinstance(r, list) else r
+            out = list(o.get("output_ids") or o.get("token_ids") or [])
+            mi = o.get("meta_info", {}) or {}
+            return tok.decode(out, skip_special_tokens=True), len(out), int(mi.get("spec_verify_ct") or 0)
+
+        engine_args_record = {**{k: v for k, v in common.items() if k != "model_path"}, **spec}
 
     gen("hi")  # warm up
 
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from _progress import Progress
-    bar = Progress(len(prompts), f"{a.bench}:{'draft' if a.draft else 'plain'}")
+    armname = ("draft" if a.draft else
+               f"{a.backend}-{a.spec_algo}" if a.spec_algo else f"{a.backend}-plain")
+    bar = Progress(len(prompts), f"{a.bench}:{armname}")
 
     correct = 0; toks = 0; verify = 0; details = []
     t0 = time.perf_counter()
@@ -142,13 +183,13 @@ def main() -> None:
     score = correct / n
     se = (score * (1 - score) / n) ** 0.5
     result = {
-        "bench": a.bench, "arm": "draft" if a.draft else "plain",
+        "bench": a.bench, "arm": armname,
         "n": n, "correct": correct, "score": score,
         "binomial_se": se, "score_ci95": [score - 1.96 * se, score + 1.96 * se],
         "tokens": toks, "seconds": secs, "tokens_per_second": toks / secs,
         "tau": (toks / verify) if verify else 0.0,
         "max_new_tokens": a.max_new_tokens, "temperature": 0.0,
-        "engine_args": {**{k: v for k, v in common.items() if k != "model_path"}, **spec},
+        "engine_args": engine_args_record,
         "details": details,
     }
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)

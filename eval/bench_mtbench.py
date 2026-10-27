@@ -22,8 +22,11 @@ def main() -> None:
     ap.add_argument("--questions", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--draft", default=None, help="omit for the no-speculation arm")
-    ap.add_argument("--backend", default="sglang", choices=["sglang", "hf"],
+    ap.add_argument("--backend", default="sglang", choices=["sglang", "hf", "vllm"],
                     help="hf = plain HuggingFace generate(), the weak reference baseline")
+    ap.add_argument("--spec-algo", default=None, choices=["ngram"],
+                    help="draftless speculation, no checkpoint: the framework's own "
+                         "proposer. Mutually exclusive with --draft.")
     ap.add_argument("--temperature", type=float, default=0.0)
     ap.add_argument("--max-new-tokens", type=int, default=1024)
     ap.add_argument("--limit", type=int, default=None, help="first N questions (debug)")
@@ -31,6 +34,9 @@ def main() -> None:
     ap.add_argument("--harness", default=None,
                     help="task harness dir, for _toolchain (JIT cache + compiler on PATH)")
     a = ap.parse_args()
+
+    if a.draft and a.spec_algo:
+        ap.error("--draft and --spec-algo are different proposers; pick one")
 
     cfg = json.loads(Path(a.models).read_text())
     pair, sg = cfg["speed_pair"], cfg["sglang"]
@@ -84,6 +90,46 @@ def main() -> None:
         _run(a, qs, tok, gen, {"backend": "hf", "note": "HuggingFace generate(), eager"})
         return
 
+    if a.backend == "vllm":
+        # vLLM has no EAGLE implementation for Qwen2.5 and refuses our head's vocab, so
+        # this backend exists ONLY for the draftless arms and their matched control.
+        # async_scheduling is forced OFF in BOTH arms: vLLM disables it by itself under
+        # ngram, and an unmatched handicap is what voided this measurement twice before.
+        from vllm import LLM, SamplingParams
+        from vllm.inputs import TokensPrompt
+
+        spec = None
+        if a.spec_algo == "ngram":
+            spec = {"method": "ngram", "num_speculative_tokens": 5,
+                    "prompt_lookup_min": 2, "prompt_lookup_max": 4}
+        llm = LLM(
+            model=pair["target"], dtype=pair["dtype"],
+            gpu_memory_utilization=0.60,
+            max_model_len=max(8192, a.max_new_tokens * 3),
+            enforce_eager=False,                  # CUDA graphs ON, as in the SGLang arms
+            disable_log_stats=False,              # the acceptance counters live in the log
+            async_scheduling=False,
+            **({"speculative_config": spec} if spec else {}),
+        )
+        sp = SamplingParams(temperature=a.temperature, max_tokens=a.max_new_tokens,
+                            detokenize=False)
+
+        def gen(ids):
+            t0 = time.perf_counter()
+            r = llm.generate(TokensPrompt(prompt_token_ids=ids), sp, use_tqdm=False)
+            dt = time.perf_counter() - t0
+            out = list(r[0].outputs[0].token_ids)
+            # vLLM reports acceptance only as aggregate log stats, never per request, so
+            # there is no per-turn verify count to return: read it from the arm's stderr.
+            return len(out), dt, out, 0
+
+        gen(tok(tok.apply_chat_template([{"role": "user", "content": "hi"}], tokenize=False,
+                                        add_generation_prompt=True))["input_ids"])
+        _run(a, qs, tok, gen, {"backend": "vllm", "async_scheduling": False,
+                               "enforce_eager": False, "speculative_config": spec,
+                               "note": "acceptance is in the stderr log, not per request"})
+        return
+
     import sglang as sgl
 
     common = dict(
@@ -94,7 +140,12 @@ def main() -> None:
         skip_tokenizer_init=True, log_level="info",
     )
     spec = {}
-    if a.draft:
+    if a.spec_algo == "ngram":
+        # No knobs on purpose: the question is what SGLang does out of the box. Its
+        # _handle_ngram resolves num_draft_tokens=12, eagle_topk=max_bfs_breadth=10,
+        # num_steps=12//10, and turns mixed chunked prefill off.
+        spec = dict(speculative_algorithm="NGRAM")
+    elif a.draft:
         ov = {}
         f = Path(a.draft) / "_overrides.json"
         if f.is_file():
@@ -172,7 +223,10 @@ def _run(a, qs, tok, gen, engine_args) -> None:
 
     tps = [s["tokens_per_second"] for s in sweeps]
     result = {
-        "arm": ("hf-eager" if a.backend == "hf" else ("draft" if a.draft else "plain")),
+        "arm": ("hf-eager" if a.backend == "hf"
+                else "draft" if a.draft
+                else f"{a.backend}-{a.spec_algo}" if a.spec_algo
+                else f"{a.backend}-plain"),
         "benchmark": "mt-bench",
         "questions": len(qs), "turns_per_question": 2,
         "temperature": a.temperature, "max_new_tokens": a.max_new_tokens,
