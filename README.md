@@ -60,19 +60,11 @@ The result below is for one target model; the recipe is not specific to it
 Both baselines are each framework's own speculative decoding, enabled and measured
 here: SGLang's `NGRAM` (a suffix automaton) and vLLM's `ngram` (prompt lookup).
 Neither needs a checkpoint or any training -- one flag -- so they are what a user
-has for free, and they are a harder baseline than running with speculation off:
-on this benchmark `NGRAM` is worth **+35.8%** to SGLang (70.932 vs 52.214 tok/s).
-That one substitution moves the headline from 2.0x to 1.48x.
+has for free. All four such modes the two frameworks offer were measured and these
+two were the fastest; `RESULTS.md` has the detail.
 
-How much vLLM's own speculation buys *it* on MT-Bench is not known here: no
-unspeculated vLLM arm was measured on this benchmark, so 59.0 stands as an
-absolute figure. On the shorter 30-prompt harness, where both vLLM arms were
-measured, `ngram` is worth +9.7% over its matched control -- and only +1.0% over
-vLLM's best non-speculative configuration, because enabling it forces the V1
-model runner and disables async scheduling. `RESULTS.md` has the full table.
-
-`eval/` has a vLLM arm only for the draftless modes: vLLM refuses to load a draft
-head whose vocabulary size differs from the target's, and has no EAGLE
+`eval/` has a vLLM arm only for its n-gram speculation: vLLM refuses to load a
+draft head whose vocabulary size differs from the target's, and has no EAGLE
 implementation for Qwen2.5, so our head cannot be measured there at all.
 
 <p align="center">
@@ -145,7 +137,7 @@ A, B and C are independent; D measures what B or C produced.
 
 | | needs | gives you |
 |---|---|---|
-| **A** verify the published number | the head weights, no training | the 2.0089x reproduced, or a number to compare |
+| **A** verify the published number | the head weights, no training | the published throughput reproduced, or a number to compare |
 | **B** train your own head | a GPU and hours | a head of your own from this recipe |
 | **C** re-run the end-to-end search | a GPU, and either an AIBuildAI login or the source-build skip flag; 5--6 h per step (17 h to verify, 36 h for all ten) | the agent builds a head from the task contract |
 | **D** evaluate the head C produced | a head from B or C | your head on the same protocol as the published one |
@@ -240,8 +232,8 @@ python eval/summarise.py --results eval/results --reference eval/REFERENCE.md
 
 Compare your output with `eval/REFERENCE.md`. Anything within ~2% is a match --
 that is the instrument's resolution, not slack. **A cold clone on a second
-machine measured 1.9943x against the published 2.0089x -- 0.73% apart, with tau
-identical to four decimals.**
+machine reproduced the published throughput to within 0.73%, with tau identical
+to four decimals.**
 
 ### Quickstart B — train your own head
 
@@ -409,7 +401,7 @@ and the ratio is not comparable.
 | 3 | on-policy volume 2.49M -> 3.71M | 2.0068 | 3.279 | 52.460 |
 
 About 5--6 hours per step. **Three steps is enough to verify the machinery** --
-it crosses 2.0x and the baselines agree to 0.05%; the remaining seven chase the
+the baselines agree to 0.05% by then; the remaining seven chase the
 end point. If the machine dies mid-run, the run does not resume: the scored
 steps and their written records survive on disk, the in-flight step does not.
 Read the records, then launch a fresh run rather than restarting the old one.
@@ -525,7 +517,7 @@ that silently never loaded cannot score at all.
 
 **What improves between runs.** The records are folded back into the written
 guides a later run starts from, so three successive runs on this task reached
-1.664x, 1.900x and 2.0089x without the method changing. `RECIPE.md` is the
+87.6, 100.1 and 104.9 tok/s without the method changing. `RECIPE.md` is the
 current state of that knowledge, and `search/task/skills/` holds the guides the
 agents read.
 

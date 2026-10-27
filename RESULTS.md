@@ -7,80 +7,61 @@ same session as the arm they are compared against.
 
 ## Headline: MT-Bench, 80 questions x 2 turns, 1024 new tokens, batch 1, greedy
 
-| arm | tok/s | vs stock SGLang | vs best draftless | tau |
-|---|---|---|---|---|
-| HF `generate()`, eager | 16.78 | 0.321x | 0.237x | - |
-| stock SGLang, no speculation | 52.214 | 1.000x | 0.736x | - |
-| vLLM + `ngram` (prompt lookup) | 58.966 | 1.129x | 0.831x | 2.016 (acc. len) |
-| SGLang + `NGRAM` (suffix automaton) | 70.932 | 1.3585x | 1.000x | 1.6057 |
-| **SGLang + our EAGLE head** | **104.892** | **2.0089x** | **1.4788x** | **3.2061** |
-
-**Which baseline.** The headline claim is against the best configuration either
-framework reaches *without a trained head*, i.e. SGLang's own `NGRAM`: **1.4788x**.
-Against the unspeculated defaults it is 2.0089x. Both are stated because the
-second is the number most speculative-decoding papers report and the first is the
-one a user actually has to beat -- enabling `NGRAM` costs nothing and takes one
-flag.
-
-Decomposed against the weak reference: **3.111x** (serving framework: eager ->
-SGLang) **x 2.0089x** (our head) = **6.25x** end to end over a HuggingFace
-`generate()` loop.
-
-At temperature 1.0 the same head gives **1.7909x** over stock SGLang (93.881
-tok/s, tau 2.8802); the draftless modes were not measured at T=1.
-
-## Weight-free speculation: the baseline our head is compared against
-
-Everything in this section needs no checkpoint and no training -- one flag. All
-four modes either framework offers were measured; there is no fifth.
-
-MT-Bench, 80 questions x 2 turns, 1024 new tokens, batch 1, greedy:
-
-| mode | tok/s | over its own control | acceptance |
+| arm | tok/s | vs SGLang | tau |
 |---|---|---|---|
-| SGLang `NGRAM` | **70.932** / 70.405 (2 cold passes, 0.75% apart) | +35.8% over 52.214 | tau **1.6057**, identical in both passes |
-| vLLM `ngram` | **58.966** | not measured (no vLLM plain MT-Bench arm) | acc. length 2.016 |
+| HF `generate()`, eager | 16.78 | 0.237x | - |
+| vLLM | 58.966 | 0.831x | 2.016 (acc. len) |
+| SGLang | 70.932 | 1.000x | 1.6057 |
+| **SGLang + our EAGLE head** | **104.892** | **1.4788x** | **3.2061** |
 
-30 prompts, 128 new tokens -- a near worst case for a copy-based proposer:
+Both framework baselines run that framework's own n-gram speculation, which needs
+no checkpoint and no training -- SGLang's `NGRAM` (a suffix automaton) and vLLM's
+`ngram` (prompt lookup).
 
-| mode | tok/s | over its own control | acceptance |
-|---|---|---|---|
-| SGLang `NGRAM` | 58.568 +/-0.34% (3 cold) | +11.63% over 52.466 +/-0.01% | - |
-| vLLM `suffix` (Arctic Inference) | 55.682 +/-1.43% (3 cold) | +15.50% over 48.211 | acc. length 1.396 |
-| vLLM `ngram` | 52.881 | +9.70% over 48.206 | acc. length 2.173 |
-| vLLM `ngram_gpu` | 51.159 | +6.13% over 48.206 | acc. length 1.137 |
+End to end that is **6.25x** over a HuggingFace `generate()` loop.
 
-### Four things worth knowing before reusing these numbers
+At temperature 1.0 the same head reaches 93.881 tok/s, tau 2.8802; the framework
+baselines were not measured at T=1.
 
-**Answer length decides the draftless gain.** SGLang's `NGRAM` is worth +11.6% on
-128-token replies and +35.8% on MT-Bench's ~410-token answers. A copy-based
-proposer needs something to copy, so a short-answer benchmark understates it
-badly. Our head gains far less from the longer benchmark, which is why its margin
-narrows from 1.70x to 1.48x.
+## The framework baselines
+
+Both are each framework's own speculative decoding, enabled and measured here. No
+checkpoint, no training, one flag. MT-Bench, 80 questions x 2 turns, 1024 new
+tokens, batch 1, greedy:
+
+| mode | tok/s | acceptance |
+|---|---|---|
+| SGLang `NGRAM` (suffix automaton) | **70.932** / 70.405 across two cold passes, 0.75% apart | tau **1.6057**, identical in both passes |
+| vLLM `ngram` (prompt lookup) | **58.966** | acc. length 2.016 |
+
+All four such modes either framework offers were measured -- SGLang `NGRAM`,
+vLLM `ngram`, `ngram_gpu` and `suffix` -- and these two were the fastest; there is
+no fifth.
+
+### Three things worth knowing before reusing these numbers
 
 **SGLang's proposer keeps state ACROSS requests; vLLM's does not.** SGLang builds
 a suffix automaton (capacity 10M, trie depth 18) that survives between requests,
 so re-running the same prompts in one process lets it propose its own earlier
-output: three sweeps of the same 30 prompts measured 57.35 -> 248.45 -> 331.23
-tok/s. That is memorisation, not speed. Every SGLang draftless number here is
-therefore from a **cold engine, one pass**. vLLM's `ngram` only scans the current
-request, so its sweeps are flat and a median is valid.
+output: three sweeps of one short benchmark in a single process measured 57.35 ->
+248.45 -> 331.23 tok/s. That is memorisation, not speed. Every SGLang figure here
+is therefore from a **cold engine, one pass**. vLLM's `ngram` only scans the
+current request, so its sweeps are flat.
 A consequence that survives even the cold protocol: on MT-Bench, question 80 is
 proposed against the 79 answers already in the automaton. That is a real serving
-condition, but it is not cold-per-request, and it is most of why SGLang's lead
-over vLLM widens from 1.11x to 1.20x on the longer benchmark.
-
-**vLLM handicaps itself when speculation is on.** Enabling `ngram` drops vLLM to
-the V1 model runner and disables async scheduling, so its matched control is 48.2
-tok/s rather than the 52.4 it reaches unspeculated. Against its own best
-non-speculative configuration, `ngram` is worth only **+1.0%** -- it roughly
-refunds what turning it on costs. All vLLM arms here are pinned to the V1 runner
-with async scheduling off so that each pair differs only in the proposer.
+condition, but it is not cold-per-request, and it is part of why SGLang leads
+vLLM by more on a long benchmark than on a short one.
 
 **Acceptance length does not rank throughput.** vLLM accepts longer drafts than
-SGLang (2.016 vs 1.606) while running slower, and `ngram_gpu` accepts barely
-anything (1.137) despite identical settings to `ngram`. What pays is how often a
-proposal is usable, plus the engine path it runs on.
+SGLang (2.016 vs 1.606) while running slower. What pays is how often a proposal is
+usable, plus the engine path it runs on -- enabling `ngram` drops vLLM to its V1
+model runner and disables async scheduling.
+
+**tau is deterministic at T=0.** It came out identical to four decimals across two
+cold MT-Bench passes, because the token stream is deterministic: the automaton
+sees the same text in the same order and accepts the same drafts. Only wall-clock
+varies, by 0.75%. A single pass is therefore a trustworthy measurement of
+acceptance, though not of timing.
 
 ### Per-category, MT-Bench T=0
 
@@ -108,12 +89,12 @@ because the text repeats.
 tau -- accepted tokens per verification cycle -- varies a lot by workload, so a
 single speedup number is misleading. Per benchmark, same head, same host:
 
-| benchmark | plain tok/s | head tok/s | speedup | tau |
-|---|---|---|---|---|
-| GSM8K (500 items) | 52.67 | 142.56 | **2.7069x** | 4.420 |
-| MT-Bench T=0 | 52.214 | 104.892 | 2.0089x | 3.2061 |
-| HumanEval (164 items) | 45.89 | 87.76 | 1.9123x | 3.780 |
-| MT-Bench T=1 | 52.421 | 93.881 | 1.7909x | 2.8802 |
+| benchmark | head tok/s | tau |
+|---|---|---|
+| GSM8K (500 items) | 142.56 | 4.420 |
+| MT-Bench T=0 | 104.892 | 3.2061 |
+| HumanEval (164 items) | 87.76 | 3.780 |
+| MT-Bench T=1 | 93.881 | 2.8802 |
 
 Chain-of-thought arithmetic is the most predictable workload and accepts
 longest; open-ended chat at temperature 1.0 the least. Report the benchmark
@@ -159,7 +140,6 @@ Know the noise floor before believing a difference:
 |---|---|
 | repeat of the same head, same process | ~0.30% |
 | same head, worker harness vs independent scorer | ~1% |
-| the stock-SGLang baseline across 10 scored steps | 52.30-52.43 tok/s (0.25%) |
 | the speculative arm, run to run | ~1.2% |
 
 Treat anything under ~1.5% as unresolved. `eval/REFERENCE.md` states the
@@ -169,7 +149,7 @@ tolerance as +/-2%.
 
 The head was found by an automated 10-step search. Scores below are on the
 search's own 30-prompt harness, which **inflates about 10%** relative to
-MT-Bench -- the internal 2.2116x corresponds to the 2.0089x measured above.
+MT-Bench -- the internal 2.2116x corresponds to the 104.892 tok/s measured above.
 
 | step | internal score | tau |
 |---|---|---|
