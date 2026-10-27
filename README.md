@@ -64,7 +64,7 @@ vocabulary size differs from the target's; that number comes from the report.
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/quality-dark.svg">
-    <img src="assets/quality-light.svg" width="100%" alt="Paired accuracy with and without the head: GSM8K 92.20 percent in both arms with 5 problems changed each way, HumanEval 80.49 percent in both arms with 2 each way, combined 7 to 7 over 664 problems, McNemar exact p = 1.000.">
+    <img src="assets/quality-light.svg" width="100%" alt="Paired accuracy with and without the head: GSM8K 92.20 percent in both arms with 5 problems changed each way, HumanEval 80.49 percent in both arms with 2 each way, no detectable difference at this sample size.">
   </picture>
 </p>
 

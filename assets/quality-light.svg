@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 340" width="1120" height="340" role="img" aria-label="Paired accuracy: GSM8K 92.20 percent with and without the head, 5 items changed each way; HumanEval 80.49 percent both, 2 each way; McNemar p equals 1.000.">
-<rect width="1120" height="340" fill="#fcfcfb"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 318" width="1120" height="318" role="img" aria-label="Paired accuracy: GSM8K 92.20 percent with and without the head, 5 items changed each way; HumanEval 80.49 percent both, 2 each way; McNemar p equals 1.000.">
+<rect width="1120" height="318" fill="#fcfcfb"/>
 <text x="40" y="44" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="17" font-weight="600" fill="#0b0b0b">Accuracy is unchanged, and the disagreements are symmetric</text>
 <text x="40" y="66" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="12.5" fill="#898781">Same 664 problems answered with the head and without it &#183; greedy &#183; paired per item</text>
 <rect x="40" y="82" width="10" height="10" rx="2" fill="#e34948"/>
@@ -19,6 +19,5 @@
 <text x="557" y="196" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="12.5" font-weight="600" fill="#0b0b0b" text-anchor="end">2</text>
 <text x="763" y="196" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="12.5" font-weight="600" fill="#0b0b0b">2</text>
 <text x="787" y="196" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="12" fill="#898781">changed, each way</text>
-<text x="40" y="298" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="12.5" fill="#52514e">Combined 7 : 7 over 664 problems &#183; McNemar exact p = 1.000</text>
-<text x="40" y="320" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="11.5" fill="#898781">No detectable difference at this sample size, which is not the same as none: resolving one point at p&lt;0.05 needs about 800 items per arm.</text>
+<text x="40" y="298" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="11.5" fill="#898781">No detectable difference at this sample size, which is not the same as none: resolving one point at p&lt;0.05 needs about 800 items per arm.</text>
 </svg>
