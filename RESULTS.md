@@ -14,9 +14,8 @@ same session as the arm they are compared against.
 | SGLang | 70.932 | 1.000x | 1.6057 |
 | **SGLang + our EAGLE head** | **104.892** | **1.4788x** | **3.2061** |
 
-Both framework baselines run that framework's own n-gram speculation, which needs
-no checkpoint and no training -- SGLang's `NGRAM` (a suffix automaton) and vLLM's
-`ngram` (prompt lookup).
+Both framework baselines run that framework's own n-gram speculation: SGLang's
+`NGRAM` (a suffix automaton) and vLLM's `ngram` (prompt lookup).
 
 End to end that is **6.25x** over a HuggingFace `generate()` loop.
 
@@ -25,18 +24,13 @@ baselines were not measured at T=1.
 
 ## The framework baselines
 
-Both are each framework's own speculative decoding, enabled and measured here. No
-checkpoint, no training, one flag. MT-Bench, 80 questions x 2 turns, 1024 new
-tokens, batch 1, greedy:
+Both are each framework's own speculative decoding, enabled and measured here.
+MT-Bench, 80 questions x 2 turns, 1024 new tokens, batch 1, greedy:
 
 | mode | tok/s | acceptance |
 |---|---|---|
 | SGLang `NGRAM` (suffix automaton) | **70.932** / 70.405 across two cold passes, 0.75% apart | tau **1.6057**, identical in both passes |
 | vLLM `ngram` (prompt lookup) | **58.966** | acc. length 2.016 |
-
-All four such modes either framework offers were measured -- SGLang `NGRAM`,
-vLLM `ngram`, `ngram_gpu` and `suffix` -- and these two were the fastest; there is
-no fifth.
 
 ### Three things worth knowing before reusing these numbers
 
