@@ -7,13 +7,13 @@
 <rect x="232" y="82" width="10" height="10" rx="2" fill="#3987e5"/>
 <text x="248" y="91" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="12" fill="#c3c2b7">head right, no-head wrong</text>
 <line x1="660" y1="104" x2="660" y2="218" stroke="#383835" stroke-width="1"/>
-<text x="412" y="136" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="13" fill="#898781" text-anchor="end"><tspan font-size="13" font-weight="600" fill="#f0efec">GSM8K</tspan>  92.20% both arms &#183; n=500</text>
+<text x="391" y="136" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="13" fill="#898781" text-anchor="end"><tspan font-size="13" font-weight="600" fill="#f0efec">GSM8K</tspan>  92.20% both arms &#183; n=500</text>
 <path d="M659 118 H433 a4 4 0 0 0 -4 4 V140 a4 4 0 0 0 4 4 H659 Z" fill="#e66767"/>
 <path d="M661 118 H887 a4 4 0 0 1 4 4 V140 a4 4 0 0 1 -4 4 H661 Z" fill="#3987e5"/>
 <text x="419" y="136" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="12.5" font-weight="600" fill="#f0efec" text-anchor="end">5</text>
 <text x="901" y="136" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="12.5" font-weight="600" fill="#f0efec">5</text>
 <text x="925" y="136" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="12" fill="#898781">changed, each way</text>
-<text x="412" y="196" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="13" fill="#898781" text-anchor="end"><tspan font-size="13" font-weight="600" fill="#f0efec">HumanEval</tspan>  80.49% both arms &#183; n=164</text>
+<text x="391" y="196" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="13" fill="#898781" text-anchor="end"><tspan font-size="13" font-weight="600" fill="#f0efec">HumanEval</tspan>  80.49% both arms &#183; n=164</text>
 <path d="M659 178 H571 a4 4 0 0 0 -4 4 V200 a4 4 0 0 0 4 4 H659 Z" fill="#e66767"/>
 <path d="M661 178 H749 a4 4 0 0 1 4 4 V200 a4 4 0 0 1 -4 4 H661 Z" fill="#3987e5"/>
 <text x="557" y="196" font-family='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' font-size="12.5" font-weight="600" fill="#f0efec" text-anchor="end">2</text>
