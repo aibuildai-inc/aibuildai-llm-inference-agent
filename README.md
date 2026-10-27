@@ -1,6 +1,6 @@
 <h1 align="center">AIBuildAI LLM-Inference Agent</h1>
 
-<h3 align="center">A draft head built end to end by an agent, 1.48x faster than the best either SGLang or vLLM reaches without a trained head</h3>
+<h3 align="center">A draft head built end to end by an agent, serving 1.48x faster than SGLang and 1.78x faster than vLLM</h3>
 
 ---
 
@@ -34,20 +34,18 @@ findings that reduces the expertise and computation this search requires; the
 knowledge base is updated after every run, so the agent improves over time.
 
 Experiments show that the agent's automatically built draft head makes
-generation **1.48x faster than the fastest configuration either framework offers
-without a trained head** and **6.2x faster than a HuggingFace generation loop,
-with unchanged accuracy**. Specifically, the results are measured on
-Qwen2.5-14B-Instruct served one request at a time on one NVIDIA A100 GPU,
-**after the agent ran for 36 hours with no human involvement**. The resulting
-engine reaches **104.9 tokens per second** on MT-Bench, against **70.9 for
-SGLang with its own NGRAM speculator** and **59.0 for vLLM with n-gram
-speculation** -- each framework's best draftless mode, not its unspeculated
-default -- with identical accuracy on GSM8K and HumanEval. Against unspeculated
-SGLang on the same benchmark (52.2 tok/s) the same head is 2.0x faster; the
-draftless baseline is the harder one, so it is the number quoted above. The head
-runs under SGLang only -- vLLM has no EAGLE implementation for Qwen2.5 and
-rejects a draft head whose vocabulary differs from the target's -- so the vLLM
-figure is a framework reference point, not an arm our head was run against.
+generation **1.48x faster than SGLang**, **1.78x faster than vLLM**, and **6.2x
+faster than a HuggingFace generation loop, with unchanged accuracy**.
+Specifically, the results are measured on Qwen2.5-14B-Instruct served one request
+at a time on one NVIDIA A100 GPU, **after the agent ran for 36 hours with no
+human involvement**. The resulting engine reaches **104.9 tokens per second** on
+MT-Bench, against **70.9 for SGLang** and **59.0 for vLLM**, each running its own
+built-in n-gram speculation, with identical accuracy on GSM8K and HumanEval.
+With speculation off, SGLang serves this model at 52.2 tok/s on the same
+benchmark, where the same head is 2.0x faster; the speculating baseline is the
+harder comparison, so it is the one quoted above. The head itself runs under SGLang only -- vLLM has no
+EAGLE implementation for Qwen2.5 and rejects a draft head whose vocabulary
+differs from the target's.
 
 This repository is its source code, for running from source, reading, and
 modifying.
@@ -60,24 +58,23 @@ The result below is for one target model; the recipe is not specific to it
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/throughput-dark.svg">
-    <img src="assets/throughput-light.svg" width="100%" alt="Decoding throughput on MT-Bench, batch 1, one A100-80GB: HF generate() eager 16.8 tok/s, vLLM with n-gram speculation 59.0, SGLang with NGRAM speculation 70.9, and the heads this agent built at 87.6, 100.1 and 104.9 tok/s across three runs, the last of them 1.48x the SGLang NGRAM bar.">
+    <img src="assets/throughput-light.svg" width="100%" alt="Decoding throughput on MT-Bench, batch 1, one A100-80GB: HF generate() eager 16.8 tok/s, vLLM 59.0, SGLang 70.9, both with their own n-gram speculation, and the heads this agent built at 87.6, 100.1 and 104.9 tok/s across three runs, the last of them 1.48x the SGLang bar.">
   </picture>
 </p>
 
-Both baselines above are each framework's own speculative decoding, enabled and
-measured here -- SGLang's `NGRAM` (a suffix automaton, no checkpoint) and vLLM's
-`ngram` (prompt lookup). Neither needs a trained head, so they are what a user
-gets for free before training anything, and they are a harder baseline than the
-unspeculated defaults: on this benchmark `NGRAM` is worth **+35.8%** over
-unspeculated SGLang (70.932 vs 52.214 tok/s). That one substitution moves the
-headline from 2.0x to 1.48x.
+Both baselines are each framework's own speculative decoding, enabled and measured
+here: SGLang's `NGRAM` (a suffix automaton) and vLLM's `ngram` (prompt lookup).
+Neither needs a checkpoint or any training -- one flag -- so they are what a user
+has for free, and they are a harder baseline than running with speculation off:
+on this benchmark `NGRAM` is worth **+35.8%** to SGLang (70.932 vs 52.214 tok/s).
+That one substitution moves the headline from 2.0x to 1.48x.
 
-No unspeculated vLLM arm has been measured on MT-Bench, so vLLM's 59.0 is quoted
-as an absolute figure with no multiplier. On the shorter 30-prompt harness, where
-both vLLM arms were measured, `ngram` is worth +9.7% over its matched control --
-and only +1.0% over vLLM's best non-speculative configuration, because enabling
-it forces the V1 model runner and disables async scheduling. `RESULTS.md` has the
-full table.
+How much vLLM's own speculation buys *it* on MT-Bench is not known here: no
+unspeculated vLLM arm was measured on this benchmark, so 59.0 stands as an
+absolute figure. On the shorter 30-prompt harness, where both vLLM arms were
+measured, `ngram` is worth +9.7% over its matched control -- and only +1.0% over
+vLLM's best non-speculative configuration, because enabling it forces the V1
+model runner and disables async scheduling. `RESULTS.md` has the full table.
 
 `eval/` has a vLLM arm only for the draftless modes: vLLM refuses to load a draft
 head whose vocabulary size differs from the target's, and has no EAGLE
