@@ -52,7 +52,7 @@ The result below is for one target model; the recipe is not specific to it
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/throughput-dark.svg">
-    <img src="assets/throughput-light.svg" width="100%" alt="Decoding throughput on MT-Bench, batch 1, one A100-80GB: HF generate() eager 16.8 tok/s, vLLM 52.1, default SGLang 52.2, and the heads this agent built at 87.6, 100.1 and 104.9 tok/s across three runs.">
+    <img src="assets/throughput-light.svg" width="100%" alt="Decoding throughput on MT-Bench, batch 1, one A100-80GB: HF generate() eager 16.8 tok/s, vLLM 52.1, default SGLang 52.2, and the heads this agent built at 87.6, 100.1 and 104.9 tok/s across three runs, the last of them 2.01x the default SGLang bar.">
   </picture>
 </p>
 
