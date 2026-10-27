@@ -41,11 +41,6 @@ at a time on one NVIDIA A100 GPU, **after the agent ran for 36 hours with no
 human involvement**. The resulting engine reaches **104.9 tokens per second** on
 MT-Bench, against **70.9 for SGLang** and **59.0 for vLLM**, each running its own
 built-in n-gram speculation, with identical accuracy on GSM8K and HumanEval.
-With speculation off, SGLang serves this model at 52.2 tok/s on the same
-benchmark, where the same head is 2.0x faster; the speculating baseline is the
-harder comparison, so it is the one quoted above. The head itself runs under SGLang only -- vLLM has no
-EAGLE implementation for Qwen2.5 and rejects a draft head whose vocabulary
-differs from the target's.
 
 This repository is its source code, for running from source, reading, and
 modifying.
