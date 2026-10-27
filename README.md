@@ -62,9 +62,8 @@ Both baselines are each framework's own speculative decoding, enabled and measur
 here: SGLang's `NGRAM` (a suffix automaton) and vLLM's `ngram` (prompt lookup).
 `RESULTS.md` has the detail.
 
-`eval/` has a vLLM arm only for its n-gram speculation: vLLM refuses to load a
-draft head whose vocabulary size differs from the target's, and has no EAGLE
-implementation for Qwen2.5, so our head cannot be measured there at all.
+The figure below is the quality result: task accuracy for AIBuildAI and for
+SGLang, paired on the same items at temperature 0.
 
 <p align="center">
   <picture>
